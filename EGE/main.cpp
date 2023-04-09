@@ -5,6 +5,10 @@
 #include<queue>
 using namespace std;
 
+int keymsg;
+bool mousehit;
+mouse_msg mouseinfo;
+
 //Classes
 class Position {
 	public:
@@ -32,6 +36,7 @@ class Element {
 		vector<PIMAGE> image_vector;
 		vector<void(*)(Element*)> function_vector;
 		unsigned int current_image = 0;
+		int private_variables[10];
 	public:
 		//Functions
 		Element(PIMAGE image,Position pos) {
@@ -152,11 +157,26 @@ class Element {
 		inline void push_function(auto function){
 			this->function_vector.push_back(function) ;
 		}
+		inline bool ismousein(int x,int y){
+			return (x >= this->pos.x && x <= this->pos.x + getwidth(this->image_vector[this->current_image]) && y >= this->pos.y && y <= this->pos.y + getheight(this->image_vector[this->current_image]));
+		}
+		inline bool ishit(){
+			if(!mousehit) return false;
+			int x,y;
+			mousepos(&x,&y);
+			return this->ismousein(x,y);
+		}
+		inline void set_variable(unsigned int which,int value){
+			this->private_variables[which] = value;
+		}
+		inline int get_variable(unsigned int which){
+			return this->private_variables[which];
+		}
 		~Element() {}
 };
 vector<Element*> Element_queue;
 int current_reg_order = 0;
-int keymsg;
+
 
 //Functions
 
@@ -177,12 +197,27 @@ void reflush() {
 	}
 	delay_ms(0);
 	keymsg = -1;
+	mousehit = false;
 	if(kbhit()) keymsg = getch();
+	if(mousemsg()){
+		mousehit = true;
+		mouseinfo = getmouse();
+	}
 	flushkey();
 }
 
 void fun(Element* e){
-	e->move_right(1);
+//	e->move_right(1);
+	if(e->ishit()) e->set_variable(0,1);
+	else {
+		if(!e->get_variable(0)) return;
+		int x,y;
+		mousepos(&x,&y);
+		if(e->ismousein(x,y)){
+			e->set_variable(0,0);
+			e->hide();
+		}
+	}
 }
 void fun1(Element* e){
 	e->move_down(1);
@@ -199,9 +234,10 @@ int main() {
 	getimage(e0_image,".//photo.png");
 	Element e0 = *(new Element(e0_image,50,50));
 	reg_Element(&e0);
+	e0.show(); 
 	e0.push_function(fun);
-	e0.push_function(fun1);
-	e0.push_function(fun2); 
+//	e0.push_function(fun1);
+//	e0.push_function(fun2); 
 	while(true){
 //		if(keymsg == (int)('a' + ('w' - 'a'))) e0.move_up(5);
 //		if(keymsg == (int)('a' + ('a' - 'a'))) e0.move_left(5);
@@ -209,7 +245,7 @@ int main() {
 //		if(keymsg == (int)('a' + ('d' - 'a'))) e0.move_right(5);
 
 
-		cout<<keymsg<<endl;
+		cout<<mousehit<<" "<<e0.ishit()<<endl;
 		reflush();
 	}
 }
