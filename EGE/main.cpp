@@ -187,6 +187,10 @@ void fun(Element* e){
 void fun1(Element* e){
 	e->move_down(1);
 }
+void fun2(Element* e){
+	e->decrease_scale(1);
+	if(e->getscale() == 0) e->set_scale(100);
+}
 
 int main() {
 	initgraph(500,500); //ª≠≤º¥Û–° 
@@ -197,6 +201,7 @@ int main() {
 	reg_Element(&e0);
 	e0.push_function(fun);
 	e0.push_function(fun1);
+	e0.push_function(fun2); 
 	while(true){
 //		if(keymsg == (int)('a' + ('w' - 'a'))) e0.move_up(5);
 //		if(keymsg == (int)('a' + ('a' - 'a'))) e0.move_left(5);
