@@ -37,6 +37,9 @@ class Element {
 		vector<void(*)(Element*)> function_vector;
 		unsigned int current_image = 0;
 		int private_variables[10];
+		inline void reflush_mouse_statu(){
+			
+		}
 	public:
 		//Functions
 		Element(PIMAGE image,Position pos) {
@@ -56,6 +59,7 @@ class Element {
 			this->order = 0;
 		}
 		void call() {
+			this->reflush_mouse_statu();
 			for(int i = 0;i < this->function_vector.size();++ i){
 				this->function_vector[i](this);
 			}
@@ -158,7 +162,9 @@ class Element {
 			this->function_vector.push_back(function) ;
 		}
 		inline bool ismousein(int x,int y){
-			return (x >= this->pos.x && x <= this->pos.x + getwidth(this->image_vector[this->current_image]) && y >= this->pos.y && y <= this->pos.y + getheight(this->image_vector[this->current_image]));
+			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
+			int d_height = getheight(this->image_vector[this->current_image]);
+			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
 		}
 		inline bool ishit(){
 			if(!mousehit) return false;
