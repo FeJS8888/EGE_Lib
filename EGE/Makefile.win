@@ -10,8 +10,8 @@ LIBS     = -L"E:/Program Files (x86)/Dev-Cpp/MinGW64/lib" -L"E:/Program Files (x
 INCS     = -I"E:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"E:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Users/·¶ÎÄ¼Ñ/Downloads/EGE20.08/include"
 CXXINCS  = -I"E:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"E:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Users/·¶ÎÄ¼Ñ/Downloads/EGE20.08/include"
 BIN      = EGE.exe
-CXXFLAGS = $(CXXINCS) -g3 -std=c++11
-CFLAGS   = $(INCS) -g3 -std=c++11
+CXXFLAGS = $(CXXINCS) -g3 -std=c++11 -std=c++1y -O2
+CFLAGS   = $(INCS) -g3 -std=c++11 -std=c++1y -O2
 RM       = rm.exe -f
 
 .PHONY: all all-before all-after clean clean-custom
