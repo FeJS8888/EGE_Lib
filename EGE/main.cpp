@@ -74,10 +74,23 @@ class Element {
 				this->frame_function_vector[i](this);
 			}
 			if(!this->is_show) return;
+			
+			//
+			cout<<this->current_image<<endl;
+			PIMAGE image = this->image_vector[this->current_image];
+//			putimage_rotatezoom(NULL,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
+//			cout<<"<><>"<<EGEGET_A(getpixel(0,0))<<endl;
+			delimage(this->__visible_image);
+			this->__visible_image = newimage(getwidth(),getheight());
+			setbkcolor(EGERGBA(0,0,0,0),this->__visible_image);
+			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
+			putimage(0,0,this->__visible_image);
+			
 			/*
 				Test click
 			*/
 			auto e = this; 
+			cout<<"<<<IS_IN = "<<this->ismousein()<<endl;
 			if(e->get_variable(0) == 3) e->set_variable(0,0);
 			if(e->ismousein()) {
 				int statu = e->get_variable(0);
@@ -89,6 +102,7 @@ class Element {
 				} else {
 					if(statu == 0){
 						e->set_variable(0,1);
+						cout<<"ON";
 						for(int i = 0;i < this->on_mouse_put_on_function_vector.size();++ i) on_mouse_put_on_function_vector[i](this);
 					}
 					else if(statu == 2) {
@@ -97,19 +111,13 @@ class Element {
 					}
 				}
 			} else{
-				if(e->get_variable(0) == 1)	for(int i = 0;i < this->on_mouse_move_away_function_vector.size();++ i) on_mouse_move_away_function_vector[i](this);
-				e->set_variable(0,0);
+				if(e->get_variable(0) == 1)	{
+					for(int i = 0;i < this->on_mouse_move_away_function_vector.size();++ i) on_mouse_move_away_function_vector[i](this);
+					e->set_variable(0,0);
+				}
+				cout<<"AWAY"<<endl;
 			}
 
-			//
-			PIMAGE image = this->image_vector[this->current_image];
-			putimage_rotatezoom(NULL,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
-//			cout<<"<><>"<<EGEGET_A(getpixel(0,0))<<endl;
-			delimage(this->__visible_image);
-			this->__visible_image = newimage(getwidth(),getheight());
-			setbkcolor(EGERGBA(0,0,0,0),this->__visible_image);
-			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
-//			putimage(0,0,this->__visible_image);
 		}
 		inline void move_left(int pixels = 0) {
 			this->pos.x -= pixels;
@@ -208,9 +216,14 @@ class Element {
 		inline bool ismousein() {
 			int x,y;
 			mousepos(&x,&y);
-			if(x < 0 || y < 0 || x > getwidth() || y > getheight()) return false;
+			if(x < 0 || y < 0 || x > getwidth() || y > getheight()){
+				cout<<"BECAUSE OUT"<<endl;
+				return false;
+			}
 //			cout<<x<<" "<<y<<"<><>"<<EGEGET_A(getpixel(x,y,this->__visible_image))<<endl;
-			return (EGEGET_A(getpixel(x,y,this->__visible_image)) == 255);
+//			if(EGEGET_A(getpixel(x,y,this->__visible_image)) == 255) cout<<"!= alpha"<<endl;
+//			else getch();
+			return (EGEGET_A(getpixel(x,y,this->__visible_image)) != 0);
 //			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
 //			int d_height = getheight(this->image_vector[this->current_image]);
 //			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
@@ -227,6 +240,15 @@ class Element {
 		}
 		inline void add_image(PIMAGE image){
 			this->image_vector.push_back(image);
+		}
+		inline void set_image(int order){
+			this->current_image = order;
+		}
+		inline int get_image_order(){
+			return this->current_image; 
+		}
+		inline PIMAGE get_image(){
+			return this->image_vector[this->current_image];
 		}
 		inline void listen(string listen_mode,auto function){
 			if(listen_mode == "frame") this->frame_function_vector.push_back(function) ;
@@ -268,25 +290,15 @@ void reflush() {
 	}
 	flushkey();
 	flushmouse();
-	xyprintf(20,20,"FPS : %0.2f",getfps());
+//	xyprintf(20,20,"FPS : %0.2f",getfps());
 }
 
-//void fun(Element* e){
-////	e->move_right(1);
-//	if(e->ishit()) e->set_variable(0,1);
-//	else {
-//		if(!e->get_variable(0)) return;
-//		int x,y;
-//		mousepos(&x,&y);
-//		if(e->ismousein(x,y)){
-//			e->set_variable(0,0);
-//			e->hide();
-//		}
-//	}
-//}
-
 void s1(Element* e) {
-	e->set_order(1);
+	e->set_image(1);
+}
+
+void s2(Element* e) {
+	e->set_image(0);
 }
 //void fun1(Element* e) {
 //	e->move_down(1);
@@ -298,9 +310,11 @@ void fun2(Element* e) {
 }
 
 int main() {
+	setinitmode(INIT_RENDERMANUAL);
 	initgraph(500,500); //ª≠≤º¥Û–°
 	setbkcolor(EGERGB(0,0,255));
-	PIMAGE e_0,e_1;
+	PIMAGE e_0 = newimage();
+	PIMAGE e_1 = newimage();
 	getimage(e_0,".//resources//image//0.png");
 	getimage(e_1,".//resources//image//1.png");
 	Element e0 = *(new Element(e_0,50,50));
@@ -308,10 +322,13 @@ int main() {
 	reg_Element(&e0);
 	e0.show();
 	e0.listen("on_mouse_put_on",s1);
+	e0.listen("on_mouse_move_away",s2);
 	e0.listen("on_click",fun2);
 	while(true) {
+//		cout<<e0.ismousein()<<"<<<"<<endl; 
 		reflush();
-		delay_fps(100);
+		cout<<"==============="<<endl; 
+//		delay_fps(100);
 	}
 }
 
