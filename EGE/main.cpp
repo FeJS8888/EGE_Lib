@@ -13,12 +13,12 @@ void fun2(Element* e) {
 }
 void e0goright(Element* e){
 	e->move_right(5);
-	e->turn_right(5);
+	e->turn_right(50);
 	if(e->getposition().x >= 600) e->set_posx(-100);
 }
 void e1goleft(Element* e){
 	e->move_left(5);
-	e->turn_left(5);
+	e->turn_left(50);
 	if(e->getposition().x <= 0) e->set_posx(600);
 }
 
@@ -34,6 +34,7 @@ int main() {
 	e0.decrease_scale(50);
 	reg_Element(&e0);
 	reg_Element(&e1);
+	e0.increase_order(1); 
 	e0.show();
 	e1.show();
 	e0.listen("on_mouse_put_on",s1);
