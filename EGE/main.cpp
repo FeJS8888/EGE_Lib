@@ -12,14 +12,25 @@ void fun2(Element* e) {
 	e->hide();
 }
 void e0goright(Element* e){
-	e->move_right(5);
-	e->turn_right(50);
+//	e->move_right(5);
+//	e->turn_right(50);
 	if(e->getposition().x >= 600) e->set_posx(-100);
 }
 void e1goleft(Element* e){
 	e->move_left(5);
 	e->turn_left(50);
 	if(e->getposition().x <= 0) e->set_posx(600);
+}
+
+void e0up(Element* e){
+	int x,y;
+	mousepos(&x,&y);
+	e->move_to(x,y);
+	e->set_scale(100);
+} 
+
+void e0down(Element* e){
+	e->set_scale(90);
 }
 
 int main() {
@@ -39,8 +50,9 @@ int main() {
 	e1.show();
 	e0.listen("on_mouse_put_on",s1);
 	e0.listen("on_mouse_move_away",s2);
-	e0.listen("on_click",fun2);
-	e0.listen("frame",e0goright);
+	e0.listen("on_click",e0down);
+	e0.listen("on_mouse_hitting",e0up);
+//	e0.listen("frame",e0goright);
 	e1.listen("frame",e1goleft);
 	while(true) {
 		reflush();
