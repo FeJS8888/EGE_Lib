@@ -21,17 +21,13 @@ void e1goleft(Element* e){
 	e->turn_left(50);
 	if(e->getposition().x <= 0) e->set_posx(600);
 }
-
-void e0up(Element* e){
-	int x,y;
-	mousepos(&x,&y);
-	e->move_to(x,y);
-	e->set_scale(100);
+using FeEGE::getkey;
+void e0move(Element* e){
+	if(getkey('a') || getkey('A')) e->move_left(4);
+	if(getkey('d') || getkey('D')) e->move_right(4);
+	if(getkey('s') || getkey('S')) e->move_down(4);
+	if(getkey('w') || getkey('W')) e->move_up(4);
 } 
-
-void e0down(Element* e){
-	e->set_scale(90);
-}
 
 int main() {
 	setinitmode(INIT_RENDERMANUAL);
@@ -50,13 +46,12 @@ int main() {
 	e1.show();
 	e0.listen("on_mouse_put_on",s1);
 	e0.listen("on_mouse_move_away",s2);
-	e0.listen("on_click",e0down);
-	e0.listen("on_mouse_hitting",e0up);
+	e0.listen("frame",e0move);
 //	e0.listen("frame",e0goright);
 	e1.listen("frame",e1goleft);
 	while(true) {
 		reflush();
-		cout<<e0.is_touched_by(&e1);
+//		cout<<e0.is_touched_by(&e1);
 		delay_fps(120);
 	}
 }

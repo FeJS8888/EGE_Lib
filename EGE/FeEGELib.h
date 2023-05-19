@@ -4,14 +4,17 @@
 #include<graphics.h>
 #include<vector>
 #include<string>
+#include<windows.h>
 #include<algorithm>
 #include<iostream>
 #include<queue>
 using namespace std;
 
-int keymsg;
+bool iskey = false;
+key_msg keymsg;
 bool mousehit = false;
 mouse_msg mouseinfo;
+bool keystatus[360];
 
 //Classes
 class Position {
@@ -298,15 +301,15 @@ void reflush() {
 		Element_queue[compared[i].getreg_order()]->call();
 	}
 	delay_ms(0);
-	keymsg = -1;
-	if(kbhit()) keymsg = getch();
+	iskey = false;
+//	if(kbhit()) keymsg = getch();
 	if(mousemsg()) {
 		mouseinfo = getmouse();
 		if(mouseinfo.is_left()) {
 			mousehit = (mousehit ? false : true);
 		}
 	}
-	flushkey();
+//	flushkey();
 	flushmouse();
 //	xyprintf(20,20,"FPS : %0.2f",getfps());
 	char fps[100];
@@ -314,4 +317,10 @@ void reflush() {
     setcaption(fps);
 }
 
+
+namespace FeEGE{
+	short getkey(int VB){
+		return GetAsyncKeyState(VB);
+	}
+} 
 #endif 
