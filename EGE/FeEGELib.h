@@ -95,6 +95,7 @@ class Element {
 		//Functions
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
+			cout<<"[CONSTRUCTURE]ptr: "<<this<<" Id: "<<this->id<<endl;
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = pos;
@@ -108,6 +109,7 @@ class Element {
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
+			cout<<"[CONSTRUCTURE]ptr: "<<this<<" Id: "<<this->id<<endl;
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = *(new Position(x,y));
@@ -299,18 +301,19 @@ class Element {
 		}
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
-			cout<<clonecount<<endl;
-			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos); 
+			cout<<clonecount<<" ID: ";
+			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos);
+			cout<<e[clonecount]->getId()<<" ptr: "<<e[clonecount]<<endl;
 			reg_Element(e[clonecount]);
-			for(int i = 0;i < this->on_clone_function_vector.size();++ i) this->on_clone_function_vector[i](this);
+			for(int i = 0; i < this->on_clone_function_vector.size(); ++ i) this->on_clone_function_vector[i](this);
 //			cout<<"SIZe:"<<this->on_clone_clones_function_vector.size()<<endl;
-			for(int i = 0;i < this->on_clone_clones_function_vector.size();++ i){
+			for(int i = 0; i < this->on_clone_clones_function_vector.size(); ++ i) {
 				this->on_clone_clones_function_vector[i](e[clonecount]);
 			}
 			return e[clonecount ++];
 		}
-		inline string getId(){
-			return this->id; 
+		inline string getId() {
+			return this->id;
 		}
 		inline void listen(string listen_mode,auto function) {
 			if(listen_mode == "frame") this->frame_function_vector.push_back(function) ;
@@ -321,10 +324,18 @@ class Element {
 			if(listen_mode == "on_clone") this->on_clone_function_vector.push_back(function) ;
 			if(listen_mode == "clones:on_clone") {
 				this->on_clone_clones_function_vector.push_back(function) ;
+				cout<<"ptr: "<<this<<" Id:"<<this->getId()<<" length: "<<on_clone_clones_function_vector.size()<<endl;
 			}
+			cout<<"[INFO]ptr: "<<this<<" listen:"<<listen_mode<<endl; 
+		}
+		inline void deletethis(){
+			delete this;
+		}
+		inline int geton_clone_clones_function_vector(){
+			return this->frame_function_vector.size();
 		}
 		~Element() {
-//			cout<<"DESTRUCTUCT : "<<this<<endl;
+			cout<<"DESTRUCTUCT : "<<this<<endl;
 		}
 };
 vector<Element*> Element_queue;
@@ -339,7 +350,9 @@ void reg_Element(Element* element) {
 }
 
 bool cmp(Element* _A,Element* _B) {
-	return *_A < *_B;
+	if(_A->getorder() > _B->getorder()) return false;
+	else if (_A->getorder() < _B->getorder()) return true;
+	return _A->getreg_order() < _B->getreg_order();
 }
 
 void reflush() {
@@ -362,6 +375,13 @@ void reflush() {
 	for(int i = 0; i < compared.size(); ++ i) {
 		Element_queue[compared[i]->getreg_order()]->call();
 	}
+	
+	cout<<"========================\n";
+	for(int i = 0;i < all_Elements.size();++ i){
+		cout<<"ptr: "<<all_Elements[i]<<" Id: "<<all_Elements[i]->getId()<<" length: "<<all_Elements[i]->geton_clone_clones_function_vector()<<endl;
+	}
+	cout<<"========================\n";
+	
 	delay_ms(0);
 	iskey = false;
 //	if(kbhit()) keymsg = getch();
@@ -375,7 +395,7 @@ void reflush() {
 	flushmouse();
 //	xyprintf(20,20,"FPS : %0.2f",getfps());
 	char fps[100];
-	sprintf(fps,"FPS : %0.2f",getfps());
+	sprintf(fps,"FPS : %1f",getfps());
 	setcaption(fps);
 }
 
@@ -391,8 +411,14 @@ namespace FeEGE {
 	short getkey(int VB) {
 		return GetAsyncKeyState(VB);
 	}
-	Element* getElementById(string ElementId){
-		for(int i = 0;i < all_Elements.size();++ i) if(all_Elements[i]->getId() == ElementId) return all_Elements[i];
+	Element* getElementById(string ElementId) {
+		for(int i = 0; i < all_Elements.size(); ++ i) {
+			if(all_Elements[i]->getId().length() != ElementId.length()) continue;
+			if(all_Elements[i]->getId() == ElementId) {
+//				cout<<all_Elements[i]->getId()<<" == "<<ElementId<<" ptr: "<<all_Elements[i]<<endl;
+				return all_Elements[i];
+			}
+		}
 		return nullptr;
 	}
 }

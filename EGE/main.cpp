@@ -10,7 +10,9 @@ using FeEGE::getkey;
 using FeEGE::getElementById;
 
 void clones_move(Element* e){
+//	if(e == nullptr) return;
 	e->move_up(5);
+//	if(e->getposition().y < -100) e->deletethis();
 }
 
 void e0move(Element* e) {
@@ -57,7 +59,7 @@ int main() {
 	Element e1 = *(new Element("1",e_1,450,50));
 	Element e2 = *(new Element("2",e_2,100,100));
 	
-//	e2.hide();
+	e2.hide();
 	e0.decrease_scale(85);
 	e1.decrease_scale(87);
 	e0.turn_left(180);
@@ -70,6 +72,7 @@ int main() {
 	e1.show();
 	e0.listen("frame",e0move);
 	e0.listen("on_click",a);
+	e2.listen("on_clone",on_clone);
 	e2.listen("clones:on_clone",on_clone);
 	start(120);
 }
