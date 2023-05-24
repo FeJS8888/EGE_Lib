@@ -8,13 +8,23 @@
 #include<algorithm>
 #include<iostream>
 #include<queue>
+
+#ifndef MAXCLONESCOUNT
+#define MAXCLONESCOUNT 0
+#endif
+
 using namespace std;
+
+class Position;
+class Element;
+void reg_Element(Element* element);
 
 bool iskey = false;
 key_msg keymsg;
 bool mousehit = false;
 mouse_msg mouseinfo;
 bool keystatus[360];
+vector<Element*>all_Elements;
 
 //Classes
 class Position {
@@ -34,6 +44,7 @@ class Position {
 class Element {
 	private:
 		//Variables
+		string id;
 		unsigned short scale;
 		int angle;
 		int order;
@@ -42,13 +53,17 @@ class Element {
 		bool is_show;
 		PIMAGE __visible_image;
 		vector<PIMAGE> image_vector;
+		vector<Element*> clones;
 		vector<void(*)(Element*)> frame_function_vector;
 		vector<void(*)(Element*)> on_mouse_put_on_function_vector;
 		vector<void(*)(Element*)> on_mouse_hitting_function_vector;
 		vector<void(*)(Element*)> on_mouse_move_away_function_vector;
 		vector<void(*)(Element*)> on_click_function_vector;
+		vector<void(*)(Element*)> on_clone_function_vector;
+		vector<void(*)(Element*)> on_clone_clones_function_vector;
 		unsigned int current_image = 0;
 		int private_variables[10];
+		int clonecount;
 		inline void reflush_mouse_statu() {
 			/*
 				Test click
@@ -56,30 +71,30 @@ class Element {
 			if(this->ismousein()) {
 				int statu = this->get_variable(0);
 				if(this->ishit()) {
-					if(statu == 1){
+					if(statu == 1) {
 						this->set_variable(0,2);
-						for(int i = 0;i < this->on_mouse_hitting_function_vector.size();++ i) on_mouse_hitting_function_vector[i](this);
+						for(int i = 0; i < this->on_mouse_hitting_function_vector.size(); ++ i) on_mouse_hitting_function_vector[i](this);
 					}
 				} else {
-					if(statu == 0){
+					if(statu == 0) {
 						this->set_variable(0,1);
-						for(int i = 0;i < this->on_mouse_put_on_function_vector.size();++ i) on_mouse_put_on_function_vector[i](this);
-					}
-					else if(statu == 2) {
+						for(int i = 0; i < this->on_mouse_put_on_function_vector.size(); ++ i) on_mouse_put_on_function_vector[i](this);
+					} else if(statu == 2) {
 						this->set_variable(0,0);
-						for(int i = 0;i < this->on_click_function_vector.size();++ i) on_click_function_vector[i](this);
+						for(int i = 0; i < this->on_click_function_vector.size(); ++ i) on_click_function_vector[i](this);
 					}
 				}
-			} else{
+			} else {
 				if(this->get_variable(0) == 1)	{
-					for(int i = 0;i < this->on_mouse_move_away_function_vector.size();++ i) on_mouse_move_away_function_vector[i](this);
+					for(int i = 0; i < this->on_mouse_move_away_function_vector.size(); ++ i) on_mouse_move_away_function_vector[i](this);
 					this->set_variable(0,0);
 				}
 			}
 		}
 	public:
 		//Functions
-		Element(PIMAGE image,Position pos) {
+		Element(string id,PIMAGE image,Position pos) {
+			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = pos;
@@ -88,8 +103,11 @@ class Element {
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
+			this->clonecount = 0;
+			all_Elements.push_back(this);
 		}
-		Element(PIMAGE image,double x = 0,double y = 0) {
+		Element(string id,PIMAGE image,double x = 0,double y = 0) {
+			this->id = id;
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = *(new Position(x,y));
@@ -98,28 +116,38 @@ class Element {
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
-			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
+			this->clonecount = 0;
+			all_Elements.push_back(this);
+//			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
+//		Element(Element* that) {
+//			this->__visible_image = newimage(getwidth(),getheight());
+//			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
+//			this->image_vector = that->image_vector;
+//			this->current_image = that->current_image;
+//			this->pos = *(new Position(that->pos.x,that->pos.y));
+//			this->is_show = true;
+//			this->scale = 100;
+//			this->angle = 0;
+//			this->order = 0;
+//			this->clonecount = 0;
+//		}
 		void call() {
 			this->reflush_mouse_statu();
-			for(int i = 0; i < this->frame_function_vector.size(); ++ i) {
-				this->frame_function_vector[i](this);
-			}
+			for(int i = 0; i < this->frame_function_vector.size(); ++ i) this->frame_function_vector[i](this);
 			if(!this->is_show) return;
-			
+
 			//
 //			cout<<this->current_image<<endl;
 			PIMAGE image = this->image_vector[this->current_image];
-			putimage_rotatezoom(NULL,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
+			putimage_rotatezoom(nullptr,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
 //			cout<<"<><>"<<EGEGET_A(getpixel(0,0))<<endl;
 			delimage(this->__visible_image);
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
 //			putimage(0,0,this->__visible_image);
-			
 			this->reflush_mouse_statu();
-			
 		}
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
@@ -218,7 +246,7 @@ class Element {
 		inline bool ismousein() {
 			int x,y;
 			mousepos(&x,&y);
-			if(x < 0 || y < 0 || x > getwidth() || y > getheight()){
+			if(x < 0 || y < 0 || x > getwidth() || y > getheight()) {
 //				cout<<"BECAUSE OUT"<<endl;
 				return false;
 			}
@@ -226,11 +254,11 @@ class Element {
 			//getch();
 //			cout<<"======DEBUG=========\nPRINT __visible_image\n";
 //			putimage(0,0,this->__visible_image);
-//putimage_rotatezoom(NULL,this->__visible_image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
+//putimage_rotatezoom(nullptr,this->__visible_image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
 			//getch();
 //			if(EGEGET_A(getpixel(x,y,this->__visible_image)) == 255) cout<<"!= alpha"<<endl;
 //			else //getch();
-//			cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl; 
+//			cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl;
 			return ((EGEGET_A(getpixel(x,y,this->__visible_image)) != 0) || (getpixel(x,y,this->__visible_image) != 65796)); //EGERGBA(1,1,4,0) = 65796
 //			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
 //			int d_height = getheight(this->image_vector[this->current_image]);
@@ -246,28 +274,21 @@ class Element {
 		inline int get_variable(unsigned int which) {
 			return this->private_variables[which];
 		}
-		inline void add_image(PIMAGE image){
+		inline void add_image(PIMAGE image) {
 			this->image_vector.push_back(image);
 		}
-		inline void set_image(int order){
+		inline void set_image(int order) {
 			this->current_image = order;
 		}
-		inline int get_image_order(){
-			return this->current_image; 
+		inline int get_image_order() {
+			return this->current_image;
 		}
-		inline PIMAGE get_image(){
+		inline PIMAGE get_image() {
 			return this->image_vector[this->current_image];
 		}
-		inline void listen(string listen_mode,auto function){
-			if(listen_mode == "frame") this->frame_function_vector.push_back(function) ;
-			if(listen_mode == "on_mouse_put_on") this->on_mouse_put_on_function_vector.push_back(function) ;
-			if(listen_mode == "on_mouse_hitting") this->on_mouse_hitting_function_vector.push_back(function) ;
-			if(listen_mode == "on_mouse_move_away") this->on_mouse_move_away_function_vector.push_back(function) ;
-			if(listen_mode == "on_click") this->on_click_function_vector.push_back(function) ;
-		}
-		inline bool is_touched_by(Element* that){
-			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]);x <= this->pos.x + getwidth(this->image_vector[this->current_image]);++ x){
-				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]);y <= this->pos.y + getheight(this->image_vector[this->current_image]);++ y){
+		inline bool is_touched_by(Element* that) {
+			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
+				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
 					if(getpixel(x,y,this->__visible_image) == 65796) continue;
 					if(getpixel(x,y,that->__visible_image) == 65796) continue;
@@ -276,7 +297,35 @@ class Element {
 				}
 			}
 		}
-		~Element() {}
+		inline Element* clone() {
+			static Element* e[MAXCLONESCOUNT];
+			cout<<clonecount<<endl;
+			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos); 
+			reg_Element(e[clonecount]);
+			for(int i = 0;i < this->on_clone_function_vector.size();++ i) this->on_clone_function_vector[i](this);
+//			cout<<"SIZe:"<<this->on_clone_clones_function_vector.size()<<endl;
+			for(int i = 0;i < this->on_clone_clones_function_vector.size();++ i){
+				this->on_clone_clones_function_vector[i](e[clonecount]);
+			}
+			return e[clonecount ++];
+		}
+		inline string getId(){
+			return this->id; 
+		}
+		inline void listen(string listen_mode,auto function) {
+			if(listen_mode == "frame") this->frame_function_vector.push_back(function) ;
+			if(listen_mode == "on_mouse_put_on") this->on_mouse_put_on_function_vector.push_back(function) ;
+			if(listen_mode == "on_mouse_hitting") this->on_mouse_hitting_function_vector.push_back(function) ;
+			if(listen_mode == "on_mouse_move_away") this->on_mouse_move_away_function_vector.push_back(function) ;
+			if(listen_mode == "on_click") this->on_click_function_vector.push_back(function) ;
+			if(listen_mode == "on_clone") this->on_clone_function_vector.push_back(function) ;
+			if(listen_mode == "clones:on_clone") {
+				this->on_clone_clones_function_vector.push_back(function) ;
+			}
+		}
+		~Element() {
+//			cout<<"DESTRUCTUCT : "<<this<<endl;
+		}
 };
 vector<Element*> Element_queue;
 int current_reg_order = 0;
@@ -289,16 +338,29 @@ void reg_Element(Element* element) {
 	Element_queue.push_back(element);
 }
 
+bool cmp(Element* _A,Element* _B) {
+	return *_A < *_B;
+}
+
 void reflush() {
 	++ frame;
 	cleardevice();
-	vector<Element>compared ;
+	vector<Element*>compared ;
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		compared.push_back(*Element_queue[i]);
+//	}
+//	sort(co0mpared.begin(),compared.end());
+////	for(int j = 0; j < Element_queue.size(); ++ j) {
+//		for(int i = 0; i < Element_queue.size(); ++ i) {
+//			Element_queue[i]->call();
+//		}
+////	}
 	for(int i = 0; i < Element_queue.size(); ++ i) {
-		compared.push_back(*Element_queue[i]);
+		compared.push_back(Element_queue[i]);
 	}
-	sort(compared.begin(),compared.end());
+	sort(compared.begin(),compared.end(),cmp);
 	for(int i = 0; i < compared.size(); ++ i) {
-		Element_queue[compared[i].getreg_order()]->call();
+		Element_queue[compared[i]->getreg_order()]->call();
 	}
 	delay_ms(0);
 	iskey = false;
@@ -314,13 +376,24 @@ void reflush() {
 //	xyprintf(20,20,"FPS : %0.2f",getfps());
 	char fps[100];
 	sprintf(fps,"FPS : %0.2f",getfps());
-    setcaption(fps);
+	setcaption(fps);
+}
+
+void start(int fps) {
+	while(is_run()) {
+		reflush();
+		delay_fps(fps);
+	}
 }
 
 
-namespace FeEGE{
-	short getkey(int VB){
+namespace FeEGE {
+	short getkey(int VB) {
 		return GetAsyncKeyState(VB);
 	}
-} 
-#endif 
+	Element* getElementById(string ElementId){
+		for(int i = 0;i < all_Elements.size();++ i) if(all_Elements[i]->getId() == ElementId) return all_Elements[i];
+		return nullptr;
+	}
+}
+#endif

@@ -1,58 +1,75 @@
+#define MAXCLONESCOUNT 10000
 #include "FeEGELib.h"
 using namespace std;
-
-void s1(Element* e) {
-	e->increase_scale(50);
-}
-
-void s2(Element* e) {
-	e->decrease_scale(50);
-}
-void fun2(Element* e) {
-	e->hide();
-}
-void e0goright(Element* e){
-//	e->move_right(5);
-//	e->turn_right(50);
-	if(e->getposition().x >= 600) e->set_posx(-100);
-}
-void e1goleft(Element* e){
+void e1goleft(Element* e) {
 	e->move_left(5);
 	e->turn_left(50);
 	if(e->getposition().x <= 0) e->set_posx(600);
 }
 using FeEGE::getkey;
-void e0move(Element* e){
-	if(getkey('a') || getkey('A')) e->move_left(4);
-	if(getkey('d') || getkey('D')) e->move_right(4);
-	if(getkey('s') || getkey('S')) e->move_down(4);
-	if(getkey('w') || getkey('W')) e->move_up(4);
-} 
+using FeEGE::getElementById;
 
-int main() {
-	setinitmode(INIT_RENDERMANUAL);
-	initgraph(500,500); //画布大小
-	PIMAGE e_0 = newimage();
-	PIMAGE e_1 = newimage();
-	getimage(e_0,".//resources//image//0.png");
-	getimage(e_1,".//resources//image//1.png");
-	Element e0 = *(new Element(e_0,50,50));
-	Element e1 = *(new Element(e_1,450,50));
-	e0.decrease_scale(50);
-	reg_Element(&e0);
-	reg_Element(&e1);
-	e0.increase_order(1); 
-	e0.show();
-	e1.show();
-	e0.listen("on_mouse_put_on",s1);
-	e0.listen("on_mouse_move_away",s2);
-	e0.listen("frame",e0move);
-//	e0.listen("frame",e0goright);
-	e1.listen("frame",e1goleft);
-	while(true) {
-		reflush();
-//		cout<<e0.is_touched_by(&e1);
-		delay_fps(120);
+void clones_move(Element* e){
+	e->move_up(5);
+}
+
+void e0move(Element* e) {
+	int speed = 7;
+	if(getkey('a') || getkey('A')) if(e->getposition().x - getwidth(e->get_image()) * e->getscale() / 100 / 2 >= speed) e->move_left(speed);
+	if(getkey('d') || getkey('D')) if(e->getposition().x + getwidth(e->get_image()) * e->getscale() / 100 / 2 <= getwidth() - speed) e->move_right(speed);
+	if(getkey('s') || getkey('S')) if(e->getposition().y + getheight(e->get_image()) * e->getscale() / 100 / 2 <= getheight() - speed) e->move_down(speed);
+	if(getkey('w') || getkey('W')) if(e->getposition().y - getheight(e->get_image()) * e->getscale() / 100 / 2 >= speed) e->move_up(speed);
+	if(getkey(' ')) {
+		cout<<getElementById("2")<<endl;
+		Element* clone = getElementById("2")->clone();
+		cout<<clone<<endl;
+		clone->listen("frame",clones_move);
 	}
 }
 
+
+
+void a(Element* e){
+//	Element *s = &(e->clone());
+//	e->add_clones(e->clone());
+//	cout<<&s<<endl;
+	Element* clone = e->clone();
+	clone->listen("frame",clones_move);
+}
+
+void on_clone(Element* e){
+	e->show();
+	e->move_to(getElementById("0")->getposition());
+	cout<<"OK";
+}
+
+int main() {
+	setinitmode(INIT_RENDERMANUAL);
+	initgraph(400,650); //画布大小
+	
+	PIMAGE e_0 = newimage();
+	PIMAGE e_1 = newimage();
+	PIMAGE e_2 = newimage();
+	getimage(e_0,".//resources//image//plane.png");
+	getimage(e_1,".//resources//image//enemy.png");
+	getimage(e_2,".//photo.png");
+	Element e0 = *(new Element("0",e_0,50,50));
+	Element e1 = *(new Element("1",e_1,450,50));
+	Element e2 = *(new Element("2",e_2,100,100));
+	
+//	e2.hide();
+	e0.decrease_scale(85);
+	e1.decrease_scale(87);
+	e0.turn_left(180);
+	
+	reg_Element(&e0);
+	reg_Element(&e1);
+	reg_Element(&e2);
+	
+	e0.show();
+	e1.show();
+	e0.listen("frame",e0move);
+	e0.listen("on_click",a);
+	e2.listen("clones:on_clone",on_clone);
+	start(120);
+}
