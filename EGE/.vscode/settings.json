@@ -1,0 +1,7 @@
+{
+    "C_Cpp.default.compilerPath": "e:\\Program Files (x86)\\Dev-Cpp\\MinGW64\\bin\\g++.exe",
+    "files.associations": {
+        "string": "cpp",
+        "iostream": "cpp"
+    }
+}

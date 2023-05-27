@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Users\\范文佳\\Downloads\\EGE20.08\\include\\**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "E:\\Program Files (x86)\\Dev-Cpp\\MinGW64\\bin\\g++.exe",
+            "intelliSenseMode": "windows-gcc-x86",
+            "cStandard": "c11",
+            "cppStandard": "gnu++11"
+        }
+    ],
+    "version": 4
+}

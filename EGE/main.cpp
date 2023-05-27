@@ -11,8 +11,17 @@ using FeEGE::getElementById;
 
 void clones_move(Element* e){
 //	if(e == nullptr) return;
-	e->move_up(5);
-//	if(e->getposition().y < -100) e->deletethis();
+	e->move_up(10);
+//	e->decrease_scale(40);
+	if(e->getposition().y < -100) e->deletethis();
+}
+
+void on_clone(Element* e){
+	e->show();
+	e->decrease_scale(40);
+	e->move_to(getElementById("0")->getposition());
+	cout<<getElementById("0")->getposition().x<<" "<<getElementById("0")->getposition().y<<endl;
+	cout<<"OK";
 }
 
 void e0move(Element* e) {
@@ -25,6 +34,7 @@ void e0move(Element* e) {
 		cout<<getElementById("2")<<endl;
 		Element* clone = getElementById("2")->clone();
 		cout<<clone<<endl;
+//		on_clone(clone); 
 		clone->listen("frame",clones_move);
 	}
 }
@@ -39,11 +49,7 @@ void a(Element* e){
 	clone->listen("frame",clones_move);
 }
 
-void on_clone(Element* e){
-	e->show();
-	e->move_to(getElementById("0")->getposition());
-	cout<<"OK";
-}
+
 
 int main() {
 	setinitmode(INIT_RENDERMANUAL);
@@ -72,7 +78,9 @@ int main() {
 	e1.show();
 	e0.listen("frame",e0move);
 	e0.listen("on_click",a);
-	e2.listen("on_clone",on_clone);
+//	e2.listen("on_clone",on_clone);
 	e2.listen("clones:on_clone",on_clone);
+	
+//	e0.deletethis();
 	start(120);
 }

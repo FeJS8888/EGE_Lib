@@ -24,7 +24,7 @@ key_msg keymsg;
 bool mousehit = false;
 mouse_msg mouseinfo;
 bool keystatus[360];
-vector<Element*>all_Elements;
+vector<Element*>Element_queue;
 
 //Classes
 class Position {
@@ -105,7 +105,6 @@ class Element {
 			this->angle = 0;
 			this->order = 0;
 			this->clonecount = 0;
-			all_Elements.push_back(this);
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
@@ -119,7 +118,6 @@ class Element {
 			this->angle = 0;
 			this->order = 0;
 			this->clonecount = 0;
-			all_Elements.push_back(this);
 //			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 //		Element(Element* that) {
@@ -329,7 +327,21 @@ class Element {
 			cout<<"[INFO]ptr: "<<this<<" listen:"<<listen_mode<<endl; 
 		}
 		inline void deletethis(){
-			delete this;
+			int i = 0;
+			for(i = 0;i < Element_queue.size();++ i){
+				if(Element_queue[i] == this){
+					
+					Element_queue[i] = nullptr;
+					cout<<"[DE]É¾³ýElement_queue";
+					cout<<"=========\n";
+	for(int i = 0; i < Element_queue.size(); ++ i) {
+		cout<<Element_queue[i]<<endl;
+	}
+	cout<<"=========\n";
+					return;
+				}
+			}
+//			delete this;
 		}
 		inline int geton_clone_clones_function_vector(){
 			return this->frame_function_vector.size();
@@ -338,7 +350,6 @@ class Element {
 			cout<<"DESTRUCTUCT : "<<this<<endl;
 		}
 };
-vector<Element*> Element_queue;
 int current_reg_order = 0;
 unsigned long long frame = 0;
 
@@ -350,6 +361,7 @@ void reg_Element(Element* element) {
 }
 
 bool cmp(Element* _A,Element* _B) {
+	if(_A == nullptr) return true;
 	if(_A->getorder() > _B->getorder()) return false;
 	else if (_A->getorder() < _B->getorder()) return true;
 	return _A->getreg_order() < _B->getreg_order();
@@ -368,19 +380,24 @@ void reflush() {
 //			Element_queue[i]->call();
 //		}
 ////	}
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		compared.push_back(Element_queue[i]);
+//	}
+	sort(Element_queue.begin(),Element_queue.end(),cmp);
+	cout<<"=========\n";
 	for(int i = 0; i < Element_queue.size(); ++ i) {
-		compared.push_back(Element_queue[i]);
+		cout<<Element_queue[i]<<endl;
 	}
-	sort(compared.begin(),compared.end(),cmp);
-	for(int i = 0; i < compared.size(); ++ i) {
-		Element_queue[compared[i]->getreg_order()]->call();
+	cout<<"=========\n";
+	for(int i = 0; i < Element_queue.size(); ++ i) {
+		if(Element_queue[i] != nullptr) Element_queue[i]->call();
 	}
 	
-	cout<<"========================\n";
-	for(int i = 0;i < all_Elements.size();++ i){
-		cout<<"ptr: "<<all_Elements[i]<<" Id: "<<all_Elements[i]->getId()<<" length: "<<all_Elements[i]->geton_clone_clones_function_vector()<<endl;
-	}
-	cout<<"========================\n";
+//	cout<<"========================\n";
+//	for(int i = 0;i < Element_queue.size();++ i){
+//		cout<<"ptr: "<<Element_queue[i]<<" Id: "<<Element_queue[i]->getId()<<" length: "<<Element_queue[i]->geton_clone_clones_function_vector()<<endl;
+//	}
+//	cout<<"========================\n";
 	
 	delay_ms(0);
 	iskey = false;
@@ -395,7 +412,7 @@ void reflush() {
 	flushmouse();
 //	xyprintf(20,20,"FPS : %0.2f",getfps());
 	char fps[100];
-	sprintf(fps,"FPS : %1f",getfps());
+	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
 }
 
@@ -412,11 +429,11 @@ namespace FeEGE {
 		return GetAsyncKeyState(VB);
 	}
 	Element* getElementById(string ElementId) {
-		for(int i = 0; i < all_Elements.size(); ++ i) {
-			if(all_Elements[i]->getId().length() != ElementId.length()) continue;
-			if(all_Elements[i]->getId() == ElementId) {
-//				cout<<all_Elements[i]->getId()<<" == "<<ElementId<<" ptr: "<<all_Elements[i]<<endl;
-				return all_Elements[i];
+		for(int i = 0; i < Element_queue.size(); ++ i) {
+			if(Element_queue[i]->getId().length() != ElementId.length()) continue;
+			if(Element_queue[i]->getId() == ElementId) {
+//				cout<<Element_queue[i]->getId()<<" == "<<ElementId<<" ptr: "<<Element_queue[i]<<endl;
+				return Element_queue[i];
 			}
 		}
 		return nullptr;

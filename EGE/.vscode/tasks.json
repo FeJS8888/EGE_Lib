@@ -1,0 +1,40 @@
+{
+    // 有关 tasks.json 格式的文档，请参见
+        // https://go.microsoft.com/fwlink/?LinkId=733558
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "type": "shell",
+                "label": "g++.exe build active file",
+                "command": "E:\\Program Files (x86)\\Dev-Cpp\\MinGW64\bin\\g++.exe",
+                "args": [
+                    "-fdiagnostics-color=always",
+                    "-g",
+                    "${workspaceFolder}\\*.cpp",	//多文件编译
+                    //"${file}",					//单文件编译用这个
+                    "-o",
+                    "${workspaceFolder}\\${workspaceRootFolderName}.exe",
+                    "-lgraphics64",
+                    "-luuid",
+                    "-lmsimg32",
+                    "-lgdi32",
+                    "-limm32",
+                    "-lole32",
+                    "-loleaut32",
+                    "-lwinmm",
+                    "-lgdiplus",
+                ],
+                "options": {
+                    "cwd": "E:\\Program Files (x86)\\Dev-Cpp\\MinGW64\\bin"
+                },
+                "problemMatcher": [
+                    "$gcc"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                }
+            }
+        ]
+    }
+    
