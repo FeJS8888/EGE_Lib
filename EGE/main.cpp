@@ -9,19 +9,20 @@ void e1goleft(Element* e) {
 using FeEGE::getkey;
 using FeEGE::getElementById;
 
-void clones_move(Element* e){
+void clones_move(Element* e) {
 //	if(e == nullptr) return;
 	e->move_up(10);
 //	e->decrease_scale(40);
 	if(e->getposition().y < -100) e->deletethis();
 }
 
-void on_clone(Element* e){
+void on_clone(Element* e) {
 	e->show();
-	e->decrease_scale(40);
-	e->move_to(getElementById("0")->getposition());
-	cout<<getElementById("0")->getposition().x<<" "<<getElementById("0")->getposition().y<<endl;
-	cout<<"OK";
+//	e->decrease_order(1);
+	e->decrease_scale(75);
+	Position pos = getElementById("0")->getposition();
+	e->move_to(pos.x + 2,pos.y - 11);
+//	cout<<getElementById("0")->getposition().x<<" "<<getElementById("0")->getposition().y<<endl;
 }
 
 void e0move(Element* e) {
@@ -31,17 +32,17 @@ void e0move(Element* e) {
 	if(getkey('s') || getkey('S')) if(e->getposition().y + getheight(e->get_image()) * e->getscale() / 100 / 2 <= getheight() - speed) e->move_down(speed);
 	if(getkey('w') || getkey('W')) if(e->getposition().y - getheight(e->get_image()) * e->getscale() / 100 / 2 >= speed) e->move_up(speed);
 	if(getkey(' ')) {
-		cout<<getElementById("2")<<endl;
-		Element* clone = getElementById("2")->clone();
-		cout<<clone<<endl;
-//		on_clone(clone); 
-		clone->listen("frame",clones_move);
+		if(e->get_variable(1) + 1 < frame) {
+			Element* clone = getElementById("2")->clone();
+			clone->listen("frame",clones_move);
+			e->set_variable(1,frame);
+		}
 	}
 }
 
 
 
-void a(Element* e){
+void a(Element* e) {
 //	Element *s = &(e->clone());
 //	e->add_clones(e->clone());
 //	cout<<&s<<endl;
@@ -54,7 +55,7 @@ void a(Element* e){
 int main() {
 	setinitmode(INIT_RENDERMANUAL);
 	initgraph(400,650); //»­²¼´óÐ¡
-	
+
 	PIMAGE e_0 = newimage();
 	PIMAGE e_1 = newimage();
 	PIMAGE e_2 = newimage();
@@ -64,23 +65,24 @@ int main() {
 	Element e0 = *(new Element("0",e_0,50,50));
 	Element e1 = *(new Element("1",e_1,450,50));
 	Element e2 = *(new Element("2",e_2,100,100));
-	
+
 	e2.hide();
+//	e0.increase_order(10);
 	e0.decrease_scale(85);
 	e1.decrease_scale(87);
 	e0.turn_left(180);
-	
+
 	reg_Element(&e0);
 	reg_Element(&e1);
 	reg_Element(&e2);
-	
+
 	e0.show();
 	e1.show();
 	e0.listen("frame",e0move);
 	e0.listen("on_click",a);
 //	e2.listen("on_clone",on_clone);
 	e2.listen("clones:on_clone",on_clone);
-	
+
 //	e0.deletethis();
-	start(120);
+	start(60);
 }

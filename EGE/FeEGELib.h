@@ -25,6 +25,8 @@ bool mousehit = false;
 mouse_msg mouseinfo;
 bool keystatus[360];
 vector<Element*>Element_queue;
+int __SIZE__ = 0;
+int removesize = 0;
 
 //Classes
 class Position {
@@ -136,8 +138,6 @@ class Element {
 			this->reflush_mouse_statu();
 			for(int i = 0; i < this->frame_function_vector.size(); ++ i) this->frame_function_vector[i](this);
 			if(!this->is_show) return;
-
-			//
 //			cout<<this->current_image<<endl;
 			PIMAGE image = this->image_vector[this->current_image];
 			putimage_rotatezoom(nullptr,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
@@ -299,9 +299,9 @@ class Element {
 		}
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
-			cout<<clonecount<<" ID: ";
+//			cout<<clonecount<<" ID: ";
 			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos);
-			cout<<e[clonecount]->getId()<<" ptr: "<<e[clonecount]<<endl;
+//			cout<<e[clonecount]->getId()<<" ptr: "<<e[clonecount]<<endl;
 			reg_Element(e[clonecount]);
 			for(int i = 0; i < this->on_clone_function_vector.size(); ++ i) this->on_clone_function_vector[i](this);
 //			cout<<"SIZe:"<<this->on_clone_clones_function_vector.size()<<endl;
@@ -330,18 +330,20 @@ class Element {
 			int i = 0;
 			for(i = 0;i < Element_queue.size();++ i){
 				if(Element_queue[i] == this){
-					
 					Element_queue[i] = nullptr;
-					cout<<"[DE]É¾³ýElement_queue";
-					cout<<"=========\n";
-	for(int i = 0; i < Element_queue.size(); ++ i) {
-		cout<<Element_queue[i]<<endl;
-	}
-	cout<<"=========\n";
-					return;
+//					cout<<"[DE]É¾³ýElement_queue";
+//					cout<<"=========\n";
+					for(int i = 0; i < Element_queue.size(); ++ i) {
+//					cout<<Element_queue[i]<<endl;
+				}
+//				cout<<"=========\n";
+				removesize ++;
+				return;
 				}
 			}
-//			delete this;
+			removesize ++;
+//			cout<<"removesize: "<<removesize<<endl;
+			delete this;
 		}
 		inline int geton_clone_clones_function_vector(){
 			return this->frame_function_vector.size();
@@ -357,20 +359,28 @@ unsigned long long frame = 0;
 
 void reg_Element(Element* element) {
 	element->set_reg_order(current_reg_order ++);
-	Element_queue.push_back(element);
+//	cout<<"Element_queue.size(): "<<Element_queue.size()<<"  __SIZE__: "<<__SIZE__<<endl;
+	if(Element_queue.size() <= __SIZE__) Element_queue.push_back(element);
+//	Element_queue.push_back(element);
+	else Element_queue[__SIZE__] = element;
+//	cout<<"reg: (ptr)"<<element<<"  Pos: "<<__SIZE__<<endl;
+	__SIZE__ ++;
 }
 
 bool cmp(Element* _A,Element* _B) {
-	if(_A == nullptr) return true;
+//	cout<<"_A: "<<_A<<"  _B: "<<_B<<endl; 
+	if(_A == nullptr) return false;
+	if(_B == nullptr) return true;
 	if(_A->getorder() > _B->getorder()) return false;
 	else if (_A->getorder() < _B->getorder()) return true;
 	return _A->getreg_order() < _B->getreg_order();
 }
 
 void reflush() {
+//	cout<<"New Frame!"<<endl;
 	++ frame;
 	cleardevice();
-	vector<Element*>compared ;
+//	vector<Element*>compared ;
 //	for(int i = 0; i < Element_queue.size(); ++ i) {
 //		compared.push_back(*Element_queue[i]);
 //	}
@@ -383,12 +393,21 @@ void reflush() {
 //	for(int i = 0; i < Element_queue.size(); ++ i) {
 //		compared.push_back(Element_queue[i]);
 //	}
-	sort(Element_queue.begin(),Element_queue.end(),cmp);
-	cout<<"=========\n";
-	for(int i = 0; i < Element_queue.size(); ++ i) {
-		cout<<Element_queue[i]<<endl;
-	}
-	cout<<"=========\n";
+
+	sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
+//	cout<<__SIZE__<<" -> ";
+	__SIZE__ -= removesize;
+//	cout<<__SIZE__<<endl;
+	removesize = 0;
+//	if(need_sort){
+//		for()
+//		need_sort = false;
+//	}
+//	cout<<"=========\n";
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		cout<<Element_queue[i]<<endl;
+//	}
+//	cout<<"=========\n";
 	for(int i = 0; i < Element_queue.size(); ++ i) {
 		if(Element_queue[i] != nullptr) Element_queue[i]->call();
 	}
@@ -419,7 +438,8 @@ void reflush() {
 void start(int fps) {
 	while(is_run()) {
 		reflush();
-		delay_fps(fps);
+//		delay_fps(fps);
+		delay_ms(1);
 	}
 }
 
