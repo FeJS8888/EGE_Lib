@@ -10,17 +10,19 @@ using FeEGE::getkey;
 using FeEGE::getElementById;
 
 void clones_move(Element* e) {
-//	if(e == nullptr) return;
 	e->move_up(10);
-//	e->decrease_scale(40);
 	if(e->getposition().y < -100) e->deletethis();
+	if(e->is_touched_by(getElementById("enemy"))) {
+		e->deletethis();
+		getElementById("enemy")->set_image(1);
+		cout<<"[Info] Touched enemy\n";
+	}
 }
 
 void on_clone(Element* e) {
 	e->show();
-//	e->decrease_order(1);
-	e->decrease_scale(75);
-	Position pos = getElementById("0")->getposition();
+	e->decrease_scale(82);
+	Position pos = getElementById("self")->getposition();
 	e->move_to(pos.x + 2,pos.y - 11);
 //	cout<<getElementById("0")->getposition().x<<" "<<getElementById("0")->getposition().y<<endl;
 }
@@ -38,9 +40,20 @@ void e0move(Element* e) {
 			e->set_variable(1,frame);
 		}
 	}
+	if(e->is_touched_by(getElementById("enemy"))){
+		e->cancel_move();
+	}
 }
 
-
+void enemy_frame(Element* e) {
+	if(e->get_image_order() == 1) {
+		int statu = e->get_variable(1);
+		if(statu >= 2) {
+			e->set_variable(1,0);
+			e->set_image(0);
+		} else e->set_variable(1,statu + 1);
+	}
+}
 
 void a(Element* e) {
 //	Element *s = &(e->clone());
@@ -57,17 +70,22 @@ int main() {
 	initgraph(400,650); //ª≠≤º¥Û–°
 
 	PIMAGE e_0 = newimage();
-	PIMAGE e_1 = newimage();
+	PIMAGE enemy = newimage();
+	PIMAGE enemy_hurt = newimage();
 	PIMAGE e_2 = newimage();
 	getimage(e_0,".//resources//image//plane.png");
-	getimage(e_1,".//resources//image//enemy.png");
+	getimage(enemy,".//resources//image//0.png");
+	getimage(enemy_hurt,".//resources//image//enemy_hurt.png");
 	getimage(e_2,".//photo.png");
-	Element e0 = *(new Element("0",e_0,50,50));
-	Element e1 = *(new Element("1",e_1,450,50));
+	Element e0 = *(new Element("self",e_0,50,550));
+	Element e1 = *(new Element("enemy",enemy,50,50));
 	Element e2 = *(new Element("2",e_2,100,100));
 
+	e1.add_image(enemy_hurt);
 	e2.hide();
-//	e0.increase_order(10);
+	e1.hide();
+	e0.increase_order(1);
+	e1.increase_order(1);
 	e0.decrease_scale(85);
 	e1.decrease_scale(87);
 	e0.turn_left(180);
@@ -81,6 +99,7 @@ int main() {
 	e0.listen("frame",e0move);
 	e0.listen("on_click",a);
 //	e2.listen("on_clone",on_clone);
+	e1.listen("frame",enemy_frame);
 	e2.listen("clones:on_clone",on_clone);
 
 //	e0.deletethis();

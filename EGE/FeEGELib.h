@@ -22,6 +22,7 @@ void reg_Element(Element* element);
 bool iskey = false;
 key_msg keymsg;
 bool mousehit = false;
+bool needsort = true;
 mouse_msg mouseinfo;
 bool keystatus[360];
 vector<Element*>Element_queue;
@@ -29,6 +30,15 @@ int __SIZE__ = 0;
 int removesize = 0;
 
 //Classes
+
+//union TYPE_UNION{
+//	int type_int;
+//	bool type_bool;
+//	string type_string;
+//	void* type_pointer;
+//	unsigned int type_uint;
+//};
+
 class Position {
 	public:
 		//Variables
@@ -52,6 +62,9 @@ class Element {
 		int order;
 		int reg_order;
 		Position pos;
+		Position backup_pos;
+		bool is_cancel_x;
+		bool is_cancel_y;
 		bool is_show;
 		PIMAGE __visible_image;
 		vector<PIMAGE> image_vector;
@@ -66,6 +79,7 @@ class Element {
 		unsigned int current_image = 0;
 		int private_variables[10];
 		int clonecount;
+		bool deleted = false;
 		inline void reflush_mouse_statu() {
 			/*
 				Test click
@@ -135,18 +149,29 @@ class Element {
 //			this->clonecount = 0;
 //		}
 		void call() {
+			this->backup_pos = pos;
 			this->reflush_mouse_statu();
 			for(int i = 0; i < this->frame_function_vector.size(); ++ i) this->frame_function_vector[i](this);
+			if(this->deleted) return;
 			if(!this->is_show) return;
-//			cout<<this->current_image<<endl;
+
+			//backup
+			if(this->is_cancel_x) {
+				this->is_cancel_x = false;
+				this->pos.x = this->backup_pos.x;
+			}
+			if(this->is_cancel_y) {
+				this->is_cancel_y = false;
+				this->pos.y = this->backup_pos.y;
+			}
+			//
+
 			PIMAGE image = this->image_vector[this->current_image];
 			putimage_rotatezoom(nullptr,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
-//			cout<<"<><>"<<EGEGET_A(getpixel(0,0))<<endl;
 			delimage(this->__visible_image);
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
-//			putimage(0,0,this->__visible_image);
 			this->reflush_mouse_statu();
 		}
 		inline void move_left(double pixels = 0) {
@@ -244,6 +269,7 @@ class Element {
 			this->frame_function_vector.push_back(function) ;
 		}
 		inline bool ismousein() {
+			if(!this->is_show) return false;
 			int x,y;
 			mousepos(&x,&y);
 			if(x < 0 || y < 0 || x > getwidth() || y > getheight()) {
@@ -287,6 +313,7 @@ class Element {
 			return this->image_vector[this->current_image];
 		}
 		inline bool is_touched_by(Element* that) {
+			if(!this->is_show || !that->is_show) return false;
 			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
 				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
@@ -324,29 +351,41 @@ class Element {
 				this->on_clone_clones_function_vector.push_back(function) ;
 				cout<<"ptr: "<<this<<" Id:"<<this->getId()<<" length: "<<on_clone_clones_function_vector.size()<<endl;
 			}
-			cout<<"[INFO]ptr: "<<this<<" listen:"<<listen_mode<<endl; 
+			cout<<"[INFO]ptr: "<<this<<" listen:"<<listen_mode<<endl;
 		}
-		inline void deletethis(){
+		inline void deletethis() {
 			int i = 0;
-			for(i = 0;i < Element_queue.size();++ i){
-				if(Element_queue[i] == this){
+			for(i = 0; i < Element_queue.size(); ++ i) {
+				if(Element_queue[i] == this) {
 					Element_queue[i] = nullptr;
 //					cout<<"[DE]É¾³ýElement_queue";
 //					cout<<"=========\n";
-					for(int i = 0; i < Element_queue.size(); ++ i) {
-//					cout<<Element_queue[i]<<endl;
-				}
-//				cout<<"=========\n";
-				removesize ++;
-				return;
+//					for(int i = 0; i < Element_queue.size(); ++ i) {
+//						cout<<Element_queue[i]<<endl;
+//					}
+//					cout<<"=========\n";
+					removesize ++;
+					needsort = true;
+					this->deleted = true;
+					return;
 				}
 			}
 			removesize ++;
 //			cout<<"removesize: "<<removesize<<endl;
-			delete this;
+//			delete this;
 		}
-		inline int geton_clone_clones_function_vector(){
+		inline int geton_clone_clones_function_vector() {
 			return this->frame_function_vector.size();
+		}
+		inline void cancel_x() {
+			this->is_cancel_x = true;
+		}
+		inline void cancel_y() {
+			this->is_cancel_y = true;
+		}
+		inline void cancel_move() {
+			this->is_cancel_x = true;
+			this->is_cancel_y = true;
 		}
 		~Element() {
 			cout<<"DESTRUCTUCT : "<<this<<endl;
@@ -358,6 +397,7 @@ unsigned long long frame = 0;
 //Functions
 
 void reg_Element(Element* element) {
+	needsort = true;
 	element->set_reg_order(current_reg_order ++);
 //	cout<<"Element_queue.size(): "<<Element_queue.size()<<"  __SIZE__: "<<__SIZE__<<endl;
 	if(Element_queue.size() <= __SIZE__) Element_queue.push_back(element);
@@ -368,7 +408,7 @@ void reg_Element(Element* element) {
 }
 
 bool cmp(Element* _A,Element* _B) {
-//	cout<<"_A: "<<_A<<"  _B: "<<_B<<endl; 
+//	cout<<"_A: "<<_A<<"  _B: "<<_B<<endl;
 	if(_A == nullptr) return false;
 	if(_B == nullptr) return true;
 	if(_A->getorder() > _B->getorder()) return false;
@@ -377,7 +417,7 @@ bool cmp(Element* _A,Element* _B) {
 }
 
 void reflush() {
-//	cout<<"New Frame!"<<endl;
+	cout<<"[Info] New Frame"<<endl;
 	++ frame;
 	cleardevice();
 //	vector<Element*>compared ;
@@ -393,8 +433,10 @@ void reflush() {
 //	for(int i = 0; i < Element_queue.size(); ++ i) {
 //		compared.push_back(Element_queue[i]);
 //	}
-
-	sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
+	if(needsort) {
+		sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
+		needsort = false;
+	}
 //	cout<<__SIZE__<<" -> ";
 	__SIZE__ -= removesize;
 //	cout<<__SIZE__<<endl;
@@ -404,20 +446,20 @@ void reflush() {
 //		need_sort = false;
 //	}
 //	cout<<"=========\n";
-//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//	for(int i = 0; i < __SIZE__; ++ i) {
 //		cout<<Element_queue[i]<<endl;
 //	}
 //	cout<<"=========\n";
-	for(int i = 0; i < Element_queue.size(); ++ i) {
+	for(int i = 0; i < __SIZE__; ++ i) {
 		if(Element_queue[i] != nullptr) Element_queue[i]->call();
 	}
-	
+
 //	cout<<"========================\n";
 //	for(int i = 0;i < Element_queue.size();++ i){
 //		cout<<"ptr: "<<Element_queue[i]<<" Id: "<<Element_queue[i]->getId()<<" length: "<<Element_queue[i]->geton_clone_clones_function_vector()<<endl;
 //	}
 //	cout<<"========================\n";
-	
+
 	delay_ms(0);
 	iskey = false;
 //	if(kbhit()) keymsg = getch();
@@ -450,6 +492,7 @@ namespace FeEGE {
 	}
 	Element* getElementById(string ElementId) {
 		for(int i = 0; i < Element_queue.size(); ++ i) {
+			if(Element_queue[i] == nullptr) continue;
 			if(Element_queue[i]->getId().length() != ElementId.length()) continue;
 			if(Element_queue[i]->getId() == ElementId) {
 //				cout<<Element_queue[i]->getId()<<" == "<<ElementId<<" ptr: "<<Element_queue[i]<<endl;
