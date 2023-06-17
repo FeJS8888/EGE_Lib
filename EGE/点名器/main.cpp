@@ -4,7 +4,12 @@ using FeEGE::getkey;
 
 void openSettings(Element* e){
 	Element* settings_element = getElementById("settings");
+	Element* close_settings_element = getElementById("close_settings");
 	settings_element->show();
+	close_settings_element->show();
+}
+
+void moveSettings(Element* e){
 }
 
 int main(){
@@ -21,9 +26,19 @@ int main(){
 	//settings定义
 	PIMAGE settings_image = newimage();
 	getimage(settings_image,".\\resources\\image\\settings.png");
-	Element* settings_element = new Element("settings",settings_image,350,100);
+	Element* settings_element = new Element("settings",settings_image,350,300);
 	reg_Element(settings_element); 
 	settings_element->hide();
-	
+//	settings_element->listen("on_mouse_hitting",[](Element* e){
+//		int x,y;
+//		mousepos(&x,&y);
+//		e->move_to(x,y);
+//	});
+	//close_settings定义
+	PIMAGE close_settings_image = newimage();
+	getimage(close_settings_image,".\\resources\\image\\close_settings.png");
+	Element* close_settings_element = new Element("close_settings",close_settings_image,350,300);
+	reg_Element(close_settings_element); 
+	close_settings_element->hide();
 	start(120);
 }

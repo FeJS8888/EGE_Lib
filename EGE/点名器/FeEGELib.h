@@ -485,6 +485,8 @@ void start(int fps) {
 	}
 }
 
+void defineElement(){
+}
 
 namespace FeEGE {
 	short getkey(int VB) {
