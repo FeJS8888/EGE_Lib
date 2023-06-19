@@ -13,6 +13,8 @@
 #define MAXCLONESCOUNT 0
 #endif
 
+#define LeftButton VK_LBUTTON 
+
 using namespace std;
 
 class Position;
@@ -28,6 +30,8 @@ bool keystatus[360];
 vector<Element*>Element_queue;
 int __SIZE__ = 0;
 int removesize = 0;
+
+
 
 //Classes
 
@@ -291,7 +295,7 @@ class Element {
 //			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
 		}
 		inline bool ishit() {
-			if(!mousehit) return false;
+			if(!GetAsyncKeyState(LeftButton)) return false;
 			return this->ismousein();
 		}
 		inline void set_variable(unsigned int which,int value) {
