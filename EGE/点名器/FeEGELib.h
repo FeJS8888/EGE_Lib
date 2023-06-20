@@ -125,6 +125,7 @@ class Element {
 			this->angle = 0;
 			this->order = 0;
 			this->clonecount = 0;
+			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
@@ -138,7 +139,7 @@ class Element {
 			this->angle = 0;
 			this->order = 0;
 			this->clonecount = 0;
-//			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
+			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 //		Element(Element* that) {
 //			this->__visible_image = newimage(getwidth(),getheight());
