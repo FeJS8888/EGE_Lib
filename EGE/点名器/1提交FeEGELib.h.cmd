@@ -1,2 +1,3 @@
-chcp 936
-copy ./FeEGELib.h ../FeEGELib.h
+chcp 65001
+copy "./FeEGELib.h" "../FeEGELib.h"
+../cmd分发FeEGELib.h.bat
