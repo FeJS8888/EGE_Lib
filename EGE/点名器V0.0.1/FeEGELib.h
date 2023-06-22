@@ -8,12 +8,16 @@
 #include<algorithm>
 #include<iostream>
 #include<queue>
+#include<stdlib.h>
+#include<malloc.h>
+#include<time.h>
 
 #ifndef MAXCLONESCOUNT
 #define MAXCLONESCOUNT 0
 #endif
 
-#define LeftButton VK_LBUTTON 
+#define LeftButton VK_LBUTTON
+#define log printf
 
 using namespace std;
 
@@ -31,6 +35,7 @@ vector<Element*>Element_queue;
 int __SIZE__ = 0;
 int removesize = 0;
 
+PIMAGE pen_image; 
 
 
 //Classes
@@ -42,6 +47,13 @@ int removesize = 0;
 //	void* type_pointer;
 //	unsigned int type_uint;
 //};
+
+ 
+#include <iostream>
+#include<ctime>
+#include<cstdio>
+#include<time.h>
+using namespace std;
 
 class Position {
 	public:
@@ -115,7 +127,7 @@ class Element {
 		//Functions
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
-			cout<<"[CONSTRUCTURE]ptr: "<<this<<" Id: "<<this->id<<endl;
+			log("[CONSTRUCTURE]ptr: 0x%x id: %s\n",this,this->id.c_str());
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = pos;
@@ -129,7 +141,7 @@ class Element {
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
-			cout<<"[CONSTRUCTURE]ptr: "<<this<<" Id: "<<this->id<<endl;
+			log("[CONSTRUCTURE]ptr: 0x%x id: %s\n",this,this->id.c_str());
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = *(new Position(x,y));
@@ -274,6 +286,7 @@ class Element {
 			this->frame_function_vector.push_back(function) ;
 		}
 		inline bool ismousein() {
+			if(GetForegroundWindow() != getHWnd()) return false;
 			if(!this->is_show) return false;
 			int x,y;
 			mousepos(&x,&y);
@@ -352,13 +365,10 @@ class Element {
 			if(listen_mode == "on_mouse_move_away") this->on_mouse_move_away_function_vector.push_back(function) ;
 			if(listen_mode == "on_click") this->on_click_function_vector.push_back(function) ;
 			if(listen_mode == "on_clone") this->on_clone_function_vector.push_back(function) ;
-			if(listen_mode == "clones:on_clone") {
-				this->on_clone_clones_function_vector.push_back(function) ;
-				cout<<"ptr: "<<this<<" Id:"<<this->getId()<<" length: "<<on_clone_clones_function_vector.size()<<endl;
-			}
-			cout<<"[INFO]ptr: "<<this<<" listen:"<<listen_mode<<endl;
+			if(listen_mode == "clones:on_clone") this->on_clone_clones_function_vector.push_back(function) ;
+			log("[Info] ptr: 0x%x listen: %s\n",this,listen_mode.c_str());
 		}
-		inline void deletethis() {
+		inline Element* deletethis() {
 			int i = 0;
 			for(i = 0; i < Element_queue.size(); ++ i) {
 				if(Element_queue[i] == this) {
@@ -372,7 +382,7 @@ class Element {
 					removesize ++;
 					needsort = true;
 					this->deleted = true;
-					return;
+					return this;
 				}
 			}
 			removesize ++;
@@ -393,7 +403,7 @@ class Element {
 			this->is_cancel_y = true;
 		}
 		~Element() {
-			cout<<"DESTRUCTUCT : "<<this<<endl;
+			log("[DESTRUCTUCT] Delete 0x%x\n",this);
 		}
 };
 int current_reg_order = 0;
@@ -404,16 +414,12 @@ unsigned long long frame = 0;
 void reg_Element(Element* element) {
 	needsort = true;
 	element->set_reg_order(current_reg_order ++);
-//	cout<<"Element_queue.size(): "<<Element_queue.size()<<"  __SIZE__: "<<__SIZE__<<endl;
 	if(Element_queue.size() <= __SIZE__) Element_queue.push_back(element);
-//	Element_queue.push_back(element);
 	else Element_queue[__SIZE__] = element;
-//	cout<<"reg: (ptr)"<<element<<"  Pos: "<<__SIZE__<<endl;
 	__SIZE__ ++;
 }
 
 bool cmp(Element* _A,Element* _B) {
-//	cout<<"_A: "<<_A<<"  _B: "<<_B<<endl;
 	if(_A == nullptr) return false;
 	if(_B == nullptr) return true;
 	if(_A->getorder() > _B->getorder()) return false;
@@ -422,75 +428,59 @@ bool cmp(Element* _A,Element* _B) {
 }
 
 void reflush() {
-//	cout<<"[Info] New Frame"<<endl;
 	++ frame;
 	cleardevice();
-//	vector<Element*>compared ;
-//	for(int i = 0; i < Element_queue.size(); ++ i) {
-//		compared.push_back(*Element_queue[i]);
-//	}
-//	sort(co0mpared.begin(),compared.end());
-////	for(int j = 0; j < Element_queue.size(); ++ j) {
-//		for(int i = 0; i < Element_queue.size(); ++ i) {
-//			Element_queue[i]->call();
-//		}
-////	}
-//	for(int i = 0; i < Element_queue.size(); ++ i) {
-//		compared.push_back(Element_queue[i]);
-//	}
 	if(needsort) {
 		sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
 		needsort = false;
 	}
-//	cout<<__SIZE__<<" -> ";
 	__SIZE__ -= removesize;
-//	cout<<__SIZE__<<endl;
 	removesize = 0;
-//	if(need_sort){
-//		for()
-//		need_sort = false;
-//	}
-//	cout<<"=========\n";
-//	for(int i = 0; i < __SIZE__; ++ i) {
-//		cout<<Element_queue[i]<<endl;
-//	}
-//	cout<<"=========\n";
 	for(int i = 0; i < __SIZE__; ++ i) {
 		if(Element_queue[i] != nullptr) Element_queue[i]->call();
 	}
-
-//	cout<<"========================\n";
-//	for(int i = 0;i < Element_queue.size();++ i){
-//		cout<<"ptr: "<<Element_queue[i]<<" Id: "<<Element_queue[i]->getId()<<" length: "<<Element_queue[i]->geton_clone_clones_function_vector()<<endl;
-//	}
-//	cout<<"========================\n";
-
-	delay_ms(0);
-	iskey = false;
-//	if(kbhit()) keymsg = getch();
-	if(mousemsg()) {
-		mouseinfo = getmouse();
-		if(mouseinfo.is_left()) {
-			mousehit = (mousehit ? false : true);
-		}
-	}
-//	flushkey();
 	flushmouse();
-//	xyprintf(20,20,"FPS : %0.2f",getfps());
 	char fps[100];
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
+	
+	putimage_transparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0));
+	
+//	delay_ms(0);
 }
 
 void start(int fps) {
+	randomize();
 	while(is_run()) {
 		reflush();
-//		delay_fps(fps);
 		delay_ms(1);
 	}
 }
 
-void defineElement(){
+void defineElement() {
+}
+
+namespace pen{
+	void print(int x,int y,string str){
+		if(pen_image == nullptr) return;
+		outtextxy(x,y,str.c_str(),pen_image);
+	}
+	void font(int scale,string fontname){
+		if(pen_image == nullptr) return;
+		setfont(scale,0,fontname.c_str(),pen_image);
+	}
+	void color(color_t color){
+		if(pen_image == nullptr) return;
+		setcolor(color,pen_image);
+	}
+	void clear(int x,int y,int ex,int ey){
+		if(pen_image == nullptr) return;
+		bar(x,y,ex,ey,pen_image);
+	}
+	void clear_all(){
+		if(pen_image == nullptr) return;
+		bar(0,0,getwidth(pen_image),getheight(pen_image),pen_image);
+	}
 }
 
 namespace FeEGE {
@@ -502,11 +492,30 @@ namespace FeEGE {
 			if(Element_queue[i] == nullptr) continue;
 			if(Element_queue[i]->getId().length() != ElementId.length()) continue;
 			if(Element_queue[i]->getId() == ElementId) {
-//				cout<<Element_queue[i]->getId()<<" == "<<ElementId<<" ptr: "<<Element_queue[i]<<endl;
 				return Element_queue[i];
 			}
 		}
 		return nullptr;
+	}
+	void initpen(){
+		int Width = getwidth();
+		int Height = getheight();
+		
+		//³õÊ¼»¯»­±Ê
+		
+		if(pen_image != nullptr) delimage(pen_image);
+		pen_image = newimage(Width,Height); 
+		setbkcolor(EGERGBA(1,1,4,0),pen_image);
+		setcolor(EGERGB(255,0,0),pen_image); 
+		setfillcolor(EGERGBA(1,1,4,0),pen_image);
+		cout<<getpixel(1,1,pen_image)<<endl; 
+		
+		static Element* pen_element = new Element("$pen",pen_image,Width / 2,Height / 2);
+		reg_Element(pen_element);
+	}
+	long long gettime(){
+		time_t *t;
+		return time(t);
 	}
 }
 #endif
