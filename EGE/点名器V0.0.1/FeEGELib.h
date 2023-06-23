@@ -7,6 +7,7 @@
 #include<windows.h>
 #include<algorithm>
 #include<iostream>
+#include<fstream>
 #include<queue>
 #include<stdlib.h>
 #include<malloc.h>
@@ -348,14 +349,22 @@ class Element {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
 					if(getpixel(x,y,this->__visible_image) == 65796) continue;
 					if(getpixel(x,y,that->__visible_image) == 65796) continue;
-//					cout<<"=====DEBUG=====\ntouched at :("<<x<<" "<<y<<")\n==============="<<endl;
 					return true;
 				}
 			}
 		}
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
-			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos);
+			for(int i = 0;i < clonecount;++ i){
+				if(e[i] == nullptr) continue;
+//				cout<<e[i]->deleted<<endl;
+				if(e[i]->deleted){
+					Element* ptr = e[i];
+//					HeapFree(GetProcessHeap(),0,ptr);	
+					e[i] = nullptr;				
+				}
+			}
+			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos); 
 			e[clonecount]->angle = this->angle;
 			e[clonecount]->scale = this->scale;
 			e[clonecount]->is_show = this->is_show;
@@ -419,6 +428,7 @@ class Element {
 };
 int current_reg_order = 0;
 unsigned long long frame = 0;
+vector<Element*>FreeList;
 
 
 namespace pen {
@@ -487,7 +497,7 @@ void reflush() {
 	char fps[100];
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
-
+	FreeList.clear();
 	delay_ms(1);
 }
 

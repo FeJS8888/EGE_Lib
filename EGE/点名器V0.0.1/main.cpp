@@ -55,11 +55,7 @@ int main() {
 //		int statu = 4;
 //		while(statu == 4) statu = MessageBox(getHWnd(),names[random(names.size())].c_str(),"选取结果(点击重试再次选取)",MB_RETRYCANCEL);
 		name = names[random(names.size())];
-		int len = 0;
-		for(int i = 0; i < name.length(); ++ i) {
-			if(name[i] >= 0 && name[i] < 256) len += 20;
-			else len += 40;
-		}
+		int len = name.length() * 20;
 		pen::clear_all();
 		pen::print((getwidth() - len) >> 1,125,name.c_str());
 
@@ -97,7 +93,11 @@ int main() {
 			if(e->getscale() != 100) e->increase_scale(10);
 			else {
 				Element* close_settings_element = getElementById("close_settings");
+				Element* open_config_element = getElementById("open_config");
+				Element* reload_config_element = getElementById("reload_config");
 				close_settings_element->show();
+				open_config_element->show();
+				reload_config_element->show();
 				e->set_variable(1,0);
 			}
 		}
@@ -123,8 +123,12 @@ int main() {
 		BlockedBySettings = false;
 		Element* settings_element = getElementById("settings");
 		Element* close_settings_element = getElementById("close_settings");
+		Element* open_config_element = getElementById("open_config");
+		Element* reload_config_element = getElementById("reload_config");
 		settings_element->set_variable(1,2);
 		close_settings_element->hide();
+		open_config_element->hide();
+		reload_config_element->hide();
 	});
 
 	//snow_particle定义
@@ -143,10 +147,13 @@ int main() {
 	});
 
 	snow_element->listen("frame",[](Element* e) {
-		if(random(45) == 0) e->clone()->listen("frame",[](Element* e) {
+		if(random(46) == 0) e->clone()->listen("frame",[](Element* e) {
 			e->move_down(1);
 			e->turn_right(3);
-			if(e->getposition().y >= getheight() + 20) delete e->deletethis();
+			if(e->getposition().y >= getheight() + 20){
+				delete e->deletethis();
+				SetProcessWorkingSetSize(getHWnd(),-1,-1);
+			}
 		});
 	});
 
@@ -166,15 +173,50 @@ int main() {
 				e->move_forward(40);
 				Position pos = e->getposition();
 				if(pos.x < 0 || pos.x > getwidth() || pos.y < 0 || pos.y > getheight()) {
-					delete e->deletethis();
+					Element* ptr = e->deletethis();
+					delete ptr;
+					SetProcessWorkingSetSize(getHWnd(),-1,-1);
 					return;
 				}
 				if(e->get_variable(1) != 1) e->set_variable(1,1);
 				else e->show();
 			});
 		});
-
+	
 		reg_Element(colorful_element[i]);
 	}
+	
+	//打开配置文件定义
+	PIMAGE open_config_image = newimage();
+	getimage(open_config_image,".\\resources\\image\\open_config.png");
+	Element* open_config_element = new Element("open_config",open_config_image,350,400);
+	open_config_element->hide();
+	open_config_element->set_order(5);
+	reg_Element(open_config_element);
+	
+	open_config_element->listen("on_click",[](Element* e) {
+		log("[Event] Open config\n");
+		system(".\\config\\students.txt");
+	});
+	
+	//重载配置文件定义
+	PIMAGE reload_config_image = newimage();
+	getimage(reload_config_image,".\\resources\\image\\reload_config.png");
+	Element* reload_config_element = new Element("reload_config",reload_config_image,350,441);
+	reload_config_element->hide();
+	reload_config_element->set_order(5);
+	reg_Element(reload_config_element);
+	
+	reload_config_element->listen("on_click",[](Element* e) {
+		names.clear();
+		ifstream in;
+		in.open(".\\config\\students.txt",ios::in);
+		while(in>>name) names.push_back(name);
+		MessageBox(getHWnd(),("重载成功，共有" + to_string(names.size()) + "个学生信息").c_str(),"提示",MB_OK);
+		pen::clear_all();
+		pen::print(230,120,"点我随机点名");
+	});
+	
+	
 	start(120);
 }
