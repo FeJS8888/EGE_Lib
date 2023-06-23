@@ -18,6 +18,7 @@
 
 #define LeftButton VK_LBUTTON
 #define log printf
+#define PIE 3.141592653589793238462643383279502f
 
 using namespace std;
 
@@ -35,7 +36,7 @@ vector<Element*>Element_queue;
 int __SIZE__ = 0;
 int removesize = 0;
 
-PIMAGE pen_image; 
+PIMAGE pen_image;
 
 
 //Classes
@@ -48,7 +49,7 @@ PIMAGE pen_image;
 //	unsigned int type_uint;
 //};
 
- 
+
 #include <iostream>
 #include<ctime>
 #include<cstdio>
@@ -76,6 +77,7 @@ class Element {
 		unsigned short scale;
 		int angle;
 		int order;
+		unsigned char alpha;
 		int reg_order;
 		Position pos;
 		Position backup_pos;
@@ -137,6 +139,7 @@ class Element {
 			this->angle = 0;
 			this->order = 0;
 			this->clonecount = 0;
+			this->alpha = 0xFF;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
@@ -151,6 +154,7 @@ class Element {
 			this->angle = 0;
 			this->order = 0;
 			this->clonecount = 0;
+			this->alpha = 0xFF;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 //		Element(Element* that) {
@@ -184,11 +188,14 @@ class Element {
 			//
 
 			PIMAGE image = this->image_vector[this->current_image];
-			putimage_rotatezoom(nullptr,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
+//			PIMAGE alpha_image = newimage(getwidth(image),getheight(image));
+//			putimage_transparent(alpha_image,image,0,0,EGERGBA(11,))
+			putimage_rotatezoom(nullptr,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+
 			delimage(this->__visible_image);
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
-			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f,this->scale / 100.00f,1);
+			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
 			this->reflush_mouse_statu();
 		}
 		inline void move_left(double pixels = 0) {
@@ -202,6 +209,10 @@ class Element {
 		}
 		inline void move_down(double pixels = 0) {
 			this->pos.y += pixels;
+		}
+		inline void move_forward(double pixels = 0){
+			this->pos.x -= sin(this->angle / 180.00f * PIE) * pixels; 
+			this->pos.y -= cos(this->angle / 180.00f * PIE) * pixels; 
 		}
 		inline void set_scale(unsigned short scale) {
 			this->scale = scale;
@@ -221,13 +232,13 @@ class Element {
 			this->is_show = true;
 		}
 		inline void turn_right(int angle) {
-			this->angle = (this->angle - (int)(angle / 360.00f * 1130)) % 1130;
+			this->angle = (this->angle - angle) % 360;
 		}
 		inline void turn_left(int angle) {
-			this->angle = (this->angle + int(angle / 360.00f * 1130)) % 1130;
+			this->angle = (this->angle + angle) % 360;
 		}
 		inline void turn_to(int angle) {
-			this->angle = (int)(angle / 360.00f * 1130) % 1130;
+			this->angle = angle % 360;
 		}
 		inline unsigned short getscale() {
 			return this->scale;
@@ -344,12 +355,12 @@ class Element {
 		}
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
-//			cout<<clonecount<<" ID: ";
 			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos);
-//			cout<<e[clonecount]->getId()<<" ptr: "<<e[clonecount]<<endl;
+			e[clonecount]->angle = this->angle;
+			e[clonecount]->scale = this->scale;
+			e[clonecount]->is_show = this->is_show;
 			reg_Element(e[clonecount]);
 			for(int i = 0; i < this->on_clone_function_vector.size(); ++ i) this->on_clone_function_vector[i](this);
-//			cout<<"SIZe:"<<this->on_clone_clones_function_vector.size()<<endl;
 			for(int i = 0; i < this->on_clone_clones_function_vector.size(); ++ i) {
 				this->on_clone_clones_function_vector[i](e[clonecount]);
 			}
@@ -373,24 +384,15 @@ class Element {
 			for(i = 0; i < Element_queue.size(); ++ i) {
 				if(Element_queue[i] == this) {
 					Element_queue[i] = nullptr;
-//					cout<<"[DE]…æ≥˝Element_queue";
-//					cout<<"=========\n";
-//					for(int i = 0; i < Element_queue.size(); ++ i) {
-//						cout<<Element_queue[i]<<endl;
-//					}
-//					cout<<"=========\n";
 					removesize ++;
 					needsort = true;
 					this->deleted = true;
 					return this;
 				}
 			}
-			removesize ++;
-//			cout<<"removesize: "<<removesize<<endl;
-//			delete this;
 		}
-		inline int geton_clone_clones_function_vector() {
-			return this->frame_function_vector.size();
+		inline vector<void (*)(Element*)> geton_clone_clones_function_vector() {
+			return this->frame_function_vector;
 		}
 		inline void cancel_x() {
 			this->is_cancel_x = true;
@@ -402,12 +404,49 @@ class Element {
 			this->is_cancel_x = true;
 			this->is_cancel_y = true;
 		}
+		inline unsigned char getalpha() {
+			return this->alpha;
+		}
+		inline void setalpha(unsigned char alpha) {
+			this->alpha = alpha;
+		}
+		inline void decrease_alpha(unsigned char alpha) {
+			this->alpha -= alpha;
+		}
 		~Element() {
 			log("[DESTRUCTUCT] Delete 0x%x\n",this);
 		}
 };
 int current_reg_order = 0;
 unsigned long long frame = 0;
+
+
+namespace pen {
+	int order = 0;
+	void print(int x,int y,string str) {
+		if(pen_image == nullptr) return;
+		outtextxy(x,y,str.c_str(),pen_image);
+	}
+	void font(int scale,string fontname) {
+		if(pen_image == nullptr) return;
+		setfont(scale,0,fontname.c_str(),pen_image);
+	}
+	void color(color_t color) {
+		if(pen_image == nullptr) return;
+		setcolor(color,pen_image);
+	}
+	void clear(int x,int y,int ex,int ey) {
+		if(pen_image == nullptr) return;
+		bar(x,y,ex,ey,pen_image);
+	}
+	void clear_all() {
+		if(pen_image == nullptr) return;
+		bar(0,0,getwidth(pen_image),getheight(pen_image),pen_image);
+	}
+	void setorder(int value) {
+		order = value;
+	}
+}
 
 //Functions
 
@@ -436,52 +475,33 @@ void reflush() {
 	}
 	__SIZE__ -= removesize;
 	removesize = 0;
+	bool pen_nprinted = true;
 	for(int i = 0; i < __SIZE__; ++ i) {
+		if(pen_nprinted && Element_queue[i]->getorder() >= pen::order) {
+			pen_nprinted = false;
+			putimage_transparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0));
+		}
 		if(Element_queue[i] != nullptr) Element_queue[i]->call();
 	}
 	flushmouse();
 	char fps[100];
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
-	
-	putimage_transparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0));
-	
-//	delay_ms(0);
+
+	delay_ms(1);
 }
 
 void start(int fps) {
 	randomize();
 	while(is_run()) {
 		reflush();
-		delay_ms(1);
 	}
 }
 
 void defineElement() {
 }
 
-namespace pen{
-	void print(int x,int y,string str){
-		if(pen_image == nullptr) return;
-		outtextxy(x,y,str.c_str(),pen_image);
-	}
-	void font(int scale,string fontname){
-		if(pen_image == nullptr) return;
-		setfont(scale,0,fontname.c_str(),pen_image);
-	}
-	void color(color_t color){
-		if(pen_image == nullptr) return;
-		setcolor(color,pen_image);
-	}
-	void clear(int x,int y,int ex,int ey){
-		if(pen_image == nullptr) return;
-		bar(x,y,ex,ey,pen_image);
-	}
-	void clear_all(){
-		if(pen_image == nullptr) return;
-		bar(0,0,getwidth(pen_image),getheight(pen_image),pen_image);
-	}
-}
+
 
 namespace FeEGE {
 	short getkey(int VB) {
@@ -497,25 +517,20 @@ namespace FeEGE {
 		}
 		return nullptr;
 	}
-	void initpen(){
+	void initpen() {
 		int Width = getwidth();
 		int Height = getheight();
-		
+
 		//≥ı ºªØª≠± 
-		
+
 		if(pen_image != nullptr) delimage(pen_image);
-		pen_image = newimage(Width,Height); 
+		pen_image = newimage(Width,Height);
 		setbkcolor(EGERGBA(1,1,4,0),pen_image);
-		setcolor(EGERGB(255,0,0),pen_image); 
+		setcolor(EGERGB(255,0,0),pen_image);
 		setfillcolor(EGERGBA(1,1,4,0),pen_image);
-		cout<<getpixel(1,1,pen_image)<<endl; 
-		
-		static Element* pen_element = new Element("$pen",pen_image,Width / 2,Height / 2);
-		reg_Element(pen_element);
-	}
-	long long gettime(){
-		time_t *t;
-		return time(t);
+
+//		static Element* pen_element = new Element("$pen",pen_image,Width / 2,Height / 2);
+//		reg_Element(pen_element);
 	}
 }
 #endif
