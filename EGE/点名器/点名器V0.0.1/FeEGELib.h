@@ -1,6 +1,6 @@
 #ifndef _FEEGELIB_
-
 #define _FEEGELIB_
+
 #include<graphics.h>
 #include<vector>
 #include<string>
@@ -17,6 +17,10 @@
 #define MAXCLONESCOUNT 0
 #endif
 
+#ifndef MAXELEMENTCOUNT
+#define MAXELEMENTCOUNT 100
+#endif
+
 #define LeftButton VK_LBUTTON
 #define log printf
 #define PIE 3.141592653589793238462643383279502f
@@ -26,6 +30,7 @@ using namespace std;
 class Position;
 class Element;
 void reg_Element(Element* element);
+Element* newElement(string,PIMAGE,double,double);
 
 bool iskey = false;
 key_msg keymsg;
@@ -56,6 +61,30 @@ PIMAGE pen_image;
 #include<cstdio>
 #include<time.h>
 using namespace std;
+
+namespace FeEGE {
+	short getkey(int VB) {
+		return GetAsyncKeyState(VB);
+	}
+	Element* getElementById(string);
+	Element* getElementByPtr(Element*);
+	void initpen() {
+		int Width = getwidth();
+		int Height = getheight();
+
+		//初始化画笔
+
+		if(pen_image != nullptr) delimage(pen_image);
+		pen_image = newimage(Width,Height);
+		setbkcolor(EGERGBA(1,1,4,0),pen_image);
+		setcolor(EGERGB(255,0,0),pen_image);
+		setfillcolor(EGERGBA(1,1,4,0),pen_image);
+
+//		static Element* pen_element = newElement("$pen",pen_image,Width / 2,Height / 2);
+//		reg_Element(pen_element);
+	}
+
+}
 
 class Position {
 	public:
@@ -88,6 +117,7 @@ class Element {
 		PIMAGE __visible_image;
 		vector<PIMAGE> image_vector;
 		vector<Element*> clones;
+		vector<Element*> removeList;
 		vector<void(*)(Element*)> frame_function_vector;
 		vector<void(*)(Element*)> on_mouse_put_on_function_vector;
 		vector<void(*)(Element*)> on_mouse_hitting_function_vector;
@@ -96,9 +126,14 @@ class Element {
 		vector<void(*)(Element*)> on_clone_function_vector;
 		vector<void(*)(Element*)> on_clone_clones_function_vector;
 		unsigned int current_image = 0;
-		int private_variables[10];
-		int clonecount;
+		long long private_variables[10];
+		bool deletedList[MAXCLONESCOUNT] = {0};
+		int clonecount = 0;
+		int nextclonecount = 0;
 		bool deleted = false;
+		Element** clonequeue = nullptr;
+		int PoolIndex;
+
 		inline void reflush_mouse_statu() {
 			/*
 				Test click
@@ -125,12 +160,18 @@ class Element {
 					this->set_variable(0,0);
 				}
 			}
+		};
+		inline void draw_to_private_image() {
+			delimage(this->__visible_image);
+			this->__visible_image = newimage(getwidth(),getheight());
+			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
+			putimage_rotatezoom(this->__visible_image,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
 		}
 	public:
 		//Functions
 		Element(string id,PIMAGE image,Position pos) {
 			this->id = id;
-			log("[CONSTRUCTURE]ptr: 0x%x id: %s\n",this,this->id.c_str());
+//			log("[Construct]ptr: 0x%x id: %s\n",this,this->id.c_str());
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = pos;
@@ -139,13 +180,13 @@ class Element {
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
-			this->clonecount = 0;
 			this->alpha = 0xFF;
+			this->deleted= false;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
 		}
 		Element(string id,PIMAGE image,double x = 0,double y = 0) {
 			this->id = id;
-			log("[CONSTRUCTURE]ptr: 0x%x id: %s\n",this,this->id.c_str());
+//			log("[Construct]ptr: 0x%x id: %s\n",this,this->id.c_str());
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			this->pos = *(new Position(x,y));
@@ -154,9 +195,29 @@ class Element {
 			this->scale = 100;
 			this->angle = 0;
 			this->order = 0;
-			this->clonecount = 0;
 			this->alpha = 0xFF;
+			this->deleted= false;
 			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
+		}
+		Element() {
+
+		}
+		inline Element* copy(string id,PIMAGE image,unsigned long long index,double x = 0,double y = 0) {
+			this->id = id;
+			this->__visible_image = newimage(getwidth(),getheight());
+			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
+			this->pos.x = x;
+			this->pos.y = y;
+			this->image_vector.push_back(image);
+			this->is_show = true;
+			this->scale = 100;
+			this->angle = 0;
+			this->order = 0;
+			this->alpha = 0xFF;
+			this->deleted= false;
+			for(int i = 0; i < 10; ++ i) this->private_variables[i] = 0;
+			this->PoolIndex = index;
+			return this;
 		}
 //		Element(Element* that) {
 //			this->__visible_image = newimage(getwidth(),getheight());
@@ -170,7 +231,7 @@ class Element {
 //			this->order = 0;
 //			this->clonecount = 0;
 //		}
-		void call() {
+		inline void call() {
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
 			for(int i = 0; i < this->frame_function_vector.size(); ++ i) this->frame_function_vector[i](this);
@@ -187,16 +248,11 @@ class Element {
 				this->pos.y = this->backup_pos.y;
 			}
 			//
-
-			PIMAGE image = this->image_vector[this->current_image];
 //			PIMAGE alpha_image = newimage(getwidth(image),getheight(image));
 //			putimage_transparent(alpha_image,image,0,0,EGERGBA(11,))
-			putimage_rotatezoom(nullptr,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 
-			delimage(this->__visible_image);
-			this->__visible_image = newimage(getwidth(),getheight());
-			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
-			putimage_rotatezoom(this->__visible_image,image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
+			this->draw_to_private_image();
 			this->reflush_mouse_statu();
 		}
 		inline void move_left(double pixels = 0) {
@@ -211,9 +267,9 @@ class Element {
 		inline void move_down(double pixels = 0) {
 			this->pos.y += pixels;
 		}
-		inline void move_forward(double pixels = 0){
-			this->pos.x -= sin(this->angle / 180.00f * PIE) * pixels; 
-			this->pos.y -= cos(this->angle / 180.00f * PIE) * pixels; 
+		inline void move_forward(double pixels = 0) {
+			this->pos.x -= sin(this->angle / 180.00f * PIE) * pixels;
+			this->pos.y -= cos(this->angle / 180.00f * PIE) * pixels;
 		}
 		inline void set_scale(unsigned short scale) {
 			this->scale = scale;
@@ -306,6 +362,7 @@ class Element {
 //				cout<<"BECAUSE OUT"<<endl;
 				return false;
 			}
+			this->draw_to_private_image();
 //			cout<<x<<" "<<y<<"<><>"<<EGEGET_A(getpixel(x,y,this->__visible_image))<<"<><>"<<getpixel(x,y,this->__visible_image)<<endl;
 			//getch();
 //			cout<<"======DEBUG=========\nPRINT __visible_image\n";
@@ -324,10 +381,10 @@ class Element {
 			if(!GetAsyncKeyState(LeftButton)) return false;
 			return this->ismousein();
 		}
-		inline void set_variable(unsigned int which,int value) {
+		inline void set_variable(unsigned int which,long long value) {
 			this->private_variables[which] = value;
 		}
-		inline int get_variable(unsigned int which) {
+		inline long long get_variable(unsigned int which) {
 			return this->private_variables[which];
 		}
 		inline void add_image(PIMAGE image) {
@@ -344,6 +401,7 @@ class Element {
 		}
 		inline bool is_touched_by(Element* that) {
 			if(!this->is_show || !that->is_show) return false;
+			this->draw_to_private_image();
 			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
 				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
@@ -355,25 +413,54 @@ class Element {
 		}
 		inline Element* clone() {
 			static Element* e[MAXCLONESCOUNT];
-			for(int i = 0;i < clonecount;++ i){
+			for(int i = 0; i < nextclonecount; ++ i) {
 				if(e[i] == nullptr) continue;
-//				cout<<e[i]->deleted<<endl;
-				if(e[i]->deleted){
-					Element* ptr = e[i];
-//					HeapFree(GetProcessHeap(),0,ptr);	
-					e[i] = nullptr;				
+				if(!this->deletedList[i]) continue;
+//				cout<<this->removeList.size()<<endl;
+				for(int j = 0; j < this->removeList.size(); ++ j) {
+					if(this->deletedList[i] && (e[i] == this->removeList[j] || FeEGE::getElementByPtr(e[i]) == nullptr)) {
+//						cout<<i<<" "<<e[i]<<" removed"<<endl;
+						this->deletedList[i] = false;
+//						if(!e[i]->deleted) e[i]->~Element();
+						e[i] = nullptr;
+					}
 				}
+//				cout<<i<<" "<<e[i]<<" "<<!deletedList[i]<<endl;
 			}
-			e[clonecount] = new Element(this->id + "_" + to_string(clonecount),this->get_image(),this->pos); 
-			e[clonecount]->angle = this->angle;
-			e[clonecount]->scale = this->scale;
-			e[clonecount]->is_show = this->is_show;
-			reg_Element(e[clonecount]);
+			this->removeList.clear();
+//			cout<<"SAFE"<<endl;
+			for(int i = 0; i < nextclonecount; ++ i) if(!this->deletedList[i]) {
+//					cout<<"USE OLD"<<i<<endl;
+					deletedList[i] = true;
+					e[i] = newElement(this->id + "_" + to_string(clonecount ++),this->get_image(),this->pos.x,this->pos.y);
+					e[i]->angle = this->angle;
+					e[i]->scale = this->scale;
+//					cout<<this<<" "<<(long long)this<<endl;
+					e[i]->set_variable(1,(long long)this);
+					e[i]->get_variable(1);
+					e[i]->is_show = this->is_show;
+					reg_Element(e[i]);
+					for(int j = 0; j < this->on_clone_function_vector.size(); ++ j) this->on_clone_function_vector[j](this);
+					for(int j = 0; j < this->on_clone_clones_function_vector.size(); ++ j) {
+						this->on_clone_clones_function_vector[j](e[i]);
+					}
+					return e[i];
+				}
+//			cout<<"USE NEW"<<nextclonecount<<endl;
+			deletedList[nextclonecount] = true;
+			e[nextclonecount] = newElement(this->id + "_" + to_string(clonecount ++),this->get_image(),this->pos.x,this->pos.y);
+			e[nextclonecount]->angle = this->angle;
+			e[nextclonecount]->scale = this->scale;
+//			cout<<this<<" "<<(long long)this<<endl;
+			e[nextclonecount]->set_variable(1,(long long)this);
+			e[nextclonecount]->get_variable(1);
+			e[nextclonecount]->is_show = this->is_show;
+			reg_Element(e[nextclonecount]);
 			for(int i = 0; i < this->on_clone_function_vector.size(); ++ i) this->on_clone_function_vector[i](this);
 			for(int i = 0; i < this->on_clone_clones_function_vector.size(); ++ i) {
-				this->on_clone_clones_function_vector[i](e[clonecount]);
+				this->on_clone_clones_function_vector[i](e[nextclonecount]);
 			}
-			return e[clonecount ++];
+			return e[nextclonecount ++];
 		}
 		inline string getId() {
 			return this->id;
@@ -386,20 +473,9 @@ class Element {
 			if(listen_mode == "on_click") this->on_click_function_vector.push_back(function) ;
 			if(listen_mode == "on_clone") this->on_clone_function_vector.push_back(function) ;
 			if(listen_mode == "clones:on_clone") this->on_clone_clones_function_vector.push_back(function) ;
-			log("[Info] ptr: 0x%x listen: %s\n",this,listen_mode.c_str());
+//			log("[Listen] ptr: 0x%x listen: %s\n",this,listen_mode.c_str());
 		}
-		inline Element* deletethis() {
-			int i = 0;
-			for(i = 0; i < Element_queue.size(); ++ i) {
-				if(Element_queue[i] == this) {
-					Element_queue[i] = nullptr;
-					removesize ++;
-					needsort = true;
-					this->deleted = true;
-					return this;
-				}
-			}
-		}
+		inline Element* deletethis() ;
 		inline vector<void (*)(Element*)> geton_clone_clones_function_vector() {
 			return this->frame_function_vector;
 		}
@@ -422,9 +498,7 @@ class Element {
 		inline void decrease_alpha(unsigned char alpha) {
 			this->alpha -= alpha;
 		}
-		~Element() {
-			log("[DESTRUCTUCT] Delete 0x%x\n",this);
-		}
+		~Element();
 };
 int current_reg_order = 0;
 unsigned long long frame = 0;
@@ -508,39 +582,67 @@ void start(int fps) {
 	}
 }
 
-void defineElement() {
+Element* FeEGE::getElementById(string ElementId) {
+	for(int i = 0; i < Element_queue.size(); ++ i) {
+		if(Element_queue[i] == nullptr) continue;
+		if(Element_queue[i]->getId().length() != ElementId.length()) continue;
+		if(Element_queue[i]->getId() == ElementId) return Element_queue[i];
+	}
+	return nullptr;
 }
 
-
-
-namespace FeEGE {
-	short getkey(int VB) {
-		return GetAsyncKeyState(VB);
+Element* FeEGE::getElementByPtr(Element* ElementPtr) {
+	for(int i = 0; i < Element_queue.size(); ++ i) {
+		if(Element_queue[i] == nullptr) continue;
+		if(Element_queue[i] == ElementPtr) return Element_queue[i];
 	}
-	Element* getElementById(string ElementId) {
-		for(int i = 0; i < Element_queue.size(); ++ i) {
-			if(Element_queue[i] == nullptr) continue;
-			if(Element_queue[i]->getId().length() != ElementId.length()) continue;
-			if(Element_queue[i]->getId() == ElementId) {
-				return Element_queue[i];
-			}
+	return nullptr;
+}
+
+Element ElementPool[MAXELEMENTCOUNT];
+bool ElementPoolUsed[MAXELEMENTCOUNT] = {0};
+
+Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
+	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
+		if(!ElementPoolUsed[i]) {
+			ElementPoolUsed[i] = true;
+			return ElementPool[i].copy(id,image,i,x,y);
 		}
-		return nullptr;
 	}
-	void initpen() {
-		int Width = getwidth();
-		int Height = getheight();
+	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
+	return nullptr;
+}
 
-		//初始化画笔
+Element::~Element() {
 
-		if(pen_image != nullptr) delimage(pen_image);
-		pen_image = newimage(Width,Height);
-		setbkcolor(EGERGBA(1,1,4,0),pen_image);
-		setcolor(EGERGB(255,0,0),pen_image);
-		setfillcolor(EGERGBA(1,1,4,0),pen_image);
+}
 
-//		static Element* pen_element = new Element("$pen",pen_image,Width / 2,Height / 2);
-//		reg_Element(pen_element);
+inline Element* Element::deletethis() {
+	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
+//			log("EMM");
+	for(int i = 0; i < Element_queue.size(); ++ i) {
+		if(Element_queue[i] == this) {
+			Element_queue[i] = nullptr;
+			removesize ++;
+			needsort = true;
+			this->deleted = true;
+			ElementPoolUsed[this->PoolIndex] = false;
+			this->frame_function_vector.clear();
+			this->image_vector.clear();
+			this->clones.clear();
+			this->removeList.clear();
+			this->on_mouse_put_on_function_vector.clear();
+			this->on_mouse_hitting_function_vector.clear();
+			this->on_mouse_move_away_function_vector.clear();
+			this->on_click_function_vector.clear();
+			this->on_clone_function_vector.clear();
+			this->on_clone_clones_function_vector.clear();
+			this->deleted = true;
+			delimage(this->__visible_image);
+//					cout<<"[Delete] "<<this->deleted<<endl;
+			return this;
+		}
 	}
+//			cout<<"Can not find"<<endl;
 }
 #endif
