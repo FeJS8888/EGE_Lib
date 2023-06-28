@@ -437,7 +437,7 @@ class Element {
 					e[i]->scale = this->scale;
 //					cout<<this<<" "<<(long long)this<<endl;
 					e[i]->set_variable(1,(long long)this);
-					e[i]->get_variable(1);
+//					e[i]->get_variable(1);
 					e[i]->is_show = this->is_show;
 					reg_Element(e[i]);
 					for(int j = 0; j < this->on_clone_function_vector.size(); ++ j) this->on_clone_function_vector[j](this);
@@ -453,7 +453,7 @@ class Element {
 			e[nextclonecount]->scale = this->scale;
 //			cout<<this<<" "<<(long long)this<<endl;
 			e[nextclonecount]->set_variable(1,(long long)this);
-			e[nextclonecount]->get_variable(1);
+//			cout<<e[nextclonecount]->get_variable(1)<<endl;
 			e[nextclonecount]->is_show = this->is_show;
 			reg_Element(e[nextclonecount]);
 			for(int i = 0; i < this->on_clone_function_vector.size(); ++ i) this->on_clone_function_vector[i](this);
@@ -605,6 +605,7 @@ bool ElementPoolUsed[MAXELEMENTCOUNT] = {0};
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
+			cout<<"·ÖÅä"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			return ElementPool[i].copy(id,image,i,x,y);
 		}
@@ -618,6 +619,8 @@ Element::~Element() {
 }
 
 inline Element* Element::deletethis() {
+//	cout<<"É¾³ý"<<endl; 
+//	cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 //			log("EMM");
 	for(int i = 0; i < Element_queue.size(); ++ i) {
@@ -627,6 +630,7 @@ inline Element* Element::deletethis() {
 			needsort = true;
 			this->deleted = true;
 			ElementPoolUsed[this->PoolIndex] = false;
+			cout<<this->PoolIndex<<" : 1->0\n"; 
 			this->frame_function_vector.clear();
 			this->image_vector.clear();
 			this->clones.clear();

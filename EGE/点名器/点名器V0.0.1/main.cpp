@@ -1,4 +1,5 @@
 #define MAXCLONESCOUNT 10000
+#define MAXELEMENTCOUNT 1000
 #include "FeEGELib.h"
 using namespace FeEGE;
 
@@ -36,7 +37,7 @@ int main() {
 	//choose_image定义
 	PIMAGE choose_image = newimage();
 	getimage(choose_image,".\\resources\\image\\choose.png");
-	Element* choose_element = new Element("choose",choose_image,350,150);
+	Element* choose_element = newElement("choose",choose_image,350,150);
 	reg_Element(choose_element);
 	choose_element->set_order(2);
 //	choose_element->listen("frame",[](Element* e){
@@ -68,7 +69,7 @@ int main() {
 	//opensettings定义
 	PIMAGE opensettings = newimage();
 	getimage(opensettings,".\\resources\\image\\open_settings.png");
-	Element* open_settings_element = new Element("open_settings",opensettings,350,350);
+	Element* open_settings_element = newElement("open_settings",opensettings,350,350);
 	reg_Element(open_settings_element);
 	open_settings_element->set_order(2);
 
@@ -83,7 +84,7 @@ int main() {
 	//settings定义
 	PIMAGE settings_image = newimage();
 	getimage(settings_image,".\\resources\\image\\settings.png");
-	Element* settings_element = new Element("settings",settings_image,350,250);
+	Element* settings_element = newElement("settings",settings_image,350,250);
 	reg_Element(settings_element);
 	settings_element->set_scale(0);
 	settings_element->set_order(4);
@@ -112,7 +113,7 @@ int main() {
 	//close_settings定义
 	PIMAGE close_settings_image = newimage();
 	getimage(close_settings_image,".\\resources\\image\\close_settings.png");
-	Element* close_settings_element = new Element("close_settings",close_settings_image,550,30);
+	Element* close_settings_element = newElement("close_settings",close_settings_image,550,30);
 	reg_Element(close_settings_element);
 	close_settings_element->hide();
 	close_settings_element->decrease_scale(92);
@@ -134,7 +135,7 @@ int main() {
 	//snow_particle定义
 	PIMAGE snow_image = newimage();
 	getimage(snow_image,".\\resources\\image\\snow.png");
-	Element* snow_element = new Element("snow",snow_image,550,-10);
+	Element* snow_element = newElement("snow",snow_image,550,-10);
 	reg_Element(snow_element);
 	snow_element->hide();
 
@@ -151,8 +152,7 @@ int main() {
 			e->move_down(1);
 			e->turn_right(3);
 			if(e->getposition().y >= getheight() + 20){
-				delete e->deletethis();
-				SetProcessWorkingSetSize(getHWnd(),-1,-1);
+				e->deletethis();
 			}
 		});
 	});
@@ -163,7 +163,7 @@ int main() {
 	for(int i = 0; i < 8; ++ i) {
 		colorful_image[i] = newimage();
 		getimage(colorful_image[i],(".\\resources\\image\\colorful" + to_string(i) + ".png").c_str(),0,0);
-		colorful_element[i] = new Element("colorful" + to_string(i),colorful_image[i],getwidth() / 2,getheight() / 2);
+		colorful_element[i] = newElement("colorful" + to_string(i),colorful_image[i],getwidth() / 2,getheight() / 2);
 		colorful_element[i]->hide();
 //		colorful_element[i]->increase_order(20);
 		colorful_element[i]->turn_to(i * 45);
@@ -173,12 +173,10 @@ int main() {
 				e->move_forward(40);
 				Position pos = e->getposition();
 				if(pos.x < 0 || pos.x > getwidth() || pos.y < 0 || pos.y > getheight()) {
-					Element* ptr = e->deletethis();
-					delete ptr;
-					SetProcessWorkingSetSize(getHWnd(),-1,-1);
+					e->deletethis();
 					return;
 				}
-				if(e->get_variable(1) != 1) e->set_variable(1,1);
+				if(e->get_variable(2) != 1) e->set_variable(2,1);
 				else e->show();
 			});
 		});
@@ -189,7 +187,7 @@ int main() {
 	//打开配置文件定义
 	PIMAGE open_config_image = newimage();
 	getimage(open_config_image,".\\resources\\image\\open_config.png");
-	Element* open_config_element = new Element("open_config",open_config_image,350,400);
+	Element* open_config_element = newElement("open_config",open_config_image,350,400);
 	open_config_element->hide();
 	open_config_element->set_order(5);
 	reg_Element(open_config_element);
@@ -202,7 +200,7 @@ int main() {
 	//重载配置文件定义
 	PIMAGE reload_config_image = newimage();
 	getimage(reload_config_image,".\\resources\\image\\reload_config.png");
-	Element* reload_config_element = new Element("reload_config",reload_config_image,350,441);
+	Element* reload_config_element = newElement("reload_config",reload_config_image,350,441);
 	reload_config_element->hide();
 	reload_config_element->set_order(5);
 	reg_Element(reload_config_element);
