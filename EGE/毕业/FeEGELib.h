@@ -403,6 +403,7 @@ class Element {
 		}
 		inline void set_variable(unsigned int which,long long value) {
 			this->private_variables[which] = value;
+//			cout<<which<<" "<<value<<" "<<this<<" "<<this->id<<endl;
 		}
 		inline long long get_variable(unsigned int which) {
 			return this->private_variables[which];
@@ -530,6 +531,7 @@ class Element {
 			else this->alpha += alpha;;
 		}
 		inline void nextimage(){
+//			cout<<this->current_image<<endl;
 			this->current_image ++;
 			this->current_image %= this->image_vector.size();
 		}
@@ -654,7 +656,7 @@ bool ElementPoolUsed[MAXELEMENTCOUNT] = {0};
 
 Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
 	PIMAGE image = newimage();
-	getimage(image,ImagePath.c_str()); 
+	getimage(image,TEXT(ImagePath.c_str())); 
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
 			cout<<"·ÖÅä"<<i<<endl;
@@ -710,7 +712,7 @@ inline Element* Element::deletethis() {
 			this->on_clone_function_vector.clear();
 			this->on_clone_clones_function_vector.clear();
 			this->deleted = true;
-			delimage(this->__visible_image);
+//			if(this->__visible_image != nullptr) delimage(this->__visible_image);
 //					cout<<"[Delete] "<<this->deleted<<endl;
 			return this;
 		}
