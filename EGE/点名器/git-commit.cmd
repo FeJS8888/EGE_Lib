@@ -1,9 +1,9 @@
 chcp 65001
 git init
 git remote rm origin
-git add ./点名器成品
-git commit -m "Test"
+git add ./文件夹名字
+git commit -m "提交时候的话"
 git branch -M main
-git remote add origin https://github.com/FeJS8888/choose_name.git
+git remote add origin 项目git地址.git
 git push -u origin main
 pause

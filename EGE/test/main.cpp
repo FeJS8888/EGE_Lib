@@ -1,5 +1,6 @@
 #define MAXCLONESCOUNT 10000
 #include "FeEGELib.h"
+#include <iomanip>
 using namespace std;
 void e1goleft(Element* e) {
 	e->move_left(5);
@@ -68,7 +69,15 @@ void a(Element* e) {
 int main() {
 	setinitmode(INIT_RENDERMANUAL);
 	initgraph(400,650); //ª≠≤º¥Û–°
-
+/*
+	PIMAGE e = newimage();
+	getimage(e,".\\test.png");
+	cout<<getwidth(e)<<" "<<getheight(e)<<endl;;
+	for(int i = 0;i < getwidth(e);++ i){
+		for(int j = 0;j < getheight(e);++ j) cout<<setw(4)<<EGEGET_A(getpixel(i,j,e))<<" ";
+		cout<<"\n";
+	} 
+*/
 	PIMAGE e_0 = newimage();
 	PIMAGE enemy = newimage();
 	PIMAGE enemy_hurt = newimage();
@@ -98,7 +107,6 @@ int main() {
 	e1.show();
 	e0.listen("frame",e0move);
 	e0.listen("on_click",a);
-//	e2.listen("on_clone",on_clone);
 	e1.listen("frame",enemy_frame);
 	e2.listen("clones:on_clone",on_clone);
 

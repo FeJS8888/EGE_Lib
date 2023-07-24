@@ -31,7 +31,6 @@ class Position;
 class Element;
 void reg_Element(Element* element);
 Element* newElement(string,PIMAGE,double,double);
-Element* newElement(string,string,double,double);
 
 bool iskey = false;
 key_msg keymsg;
@@ -40,12 +39,15 @@ bool needsort = true;
 mouse_msg mouseinfo;
 bool keystatus[360];
 vector<Element*>Element_queue;
-vector<void(*)(void)> schedule; 
 int __SIZE__ = 0;
 int removesize = 0;
-bool closeGraph = false;
 
 PIMAGE pen_image;
+
+PIMAGE redTeamImage;
+PIMAGE greenTeamImage;
+PIMAGE blueTeamImage;
+PIMAGE yellowTeamImage; 
 
 
 //Classes
@@ -58,15 +60,11 @@ PIMAGE pen_image;
 //	unsigned int type_uint;
 //};
 
-
-#include <iostream>
-#include<ctime>
-#include<cstdio>
-#include<time.h>
 using namespace std;
 
 namespace FeEGE {
 	short getkey(int VB) {
+		if(GetForegroundWindow() != getHWnd()) return false;
 		return GetAsyncKeyState(VB);
 	}
 	Element* getElementById(string);
@@ -86,10 +84,16 @@ namespace FeEGE {
 //		static Element* pen_element = newElement("$pen",pen_image,Width / 2,Height / 2);
 //		reg_Element(pen_element);
 	}
-	void push_schedule(auto function){
-		schedule.push_back(function);
+	void initTeam(){
+		redTeamImage = newimage();
+		greenTeamImage = newimage();
+		yellowTeamImage = newimage();
+		blueTeamImage = newimage();
+		setbkcolor_f(EGERGBA(1,1,4,0),redTeamImage);
+		setbkcolor_f(EGERGBA(1,1,4,0),greenTeamImage);
+		setbkcolor_f(EGERGBA(1,1,4,0),yellowTeamImage);
+		setbkcolor_f(EGERGBA(1,1,4,0),blueTeamImage);
 	}
-
 }
 
 class Position {
@@ -139,7 +143,7 @@ class Element {
 		bool deleted = false;
 		Element** clonequeue = nullptr;
 		int PoolIndex;
-		vector<color_t> remove_colors;
+		bool team[4];
 
 		inline void reflush_mouse_statu() {
 			/*
@@ -255,18 +259,25 @@ class Element {
 				this->pos.y = this->backup_pos.y;
 			}
 			//
-			PIMAGE image = this->image_vector[this->current_image];
-			PIMAGE alpha_image = newimage(getwidth(image),getheight(image));
-			getimage(alpha_image,image,0,0,getwidth(image),getheight(image));
-			ege_setalpha(this->alpha,alpha_image);
-			putimage_rotatezoom(nullptr,alpha_image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
-			 
-			delimage(this->__visible_image);
-			this->__visible_image = newimage(getwidth(),getheight());
-			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
-			putimage_rotatezoom(this->__visible_image,alpha_image,this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
+//			PIMAGE alpha_image = newimage(getwidth(image),getheight(image));
+//			putimage_transparent(alpha_image,image,0,0,EGERGBA(11,))
+			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			if(this->team[0]) putimage_rotatezoom(redTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			else if(this->team[1]) putimage_rotatezoom(greenTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			else if(this->team[2]) putimage_rotatezoom(blueTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			else if(this->team[3]) putimage_rotatezoom(yellowTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 			
+			
+			
+			this->draw_to_private_image();
 			this->reflush_mouse_statu();
+		}
+		inline void setTeam(string Team){
+			for(int i = 0;i < 4;++ i) this->team[i] = false;
+			if(Team == "red") this->team[0] = true;
+			else if(Team == "green") this->team[1] = true;
+			else if(Team == "blue") this->team[2] = true;
+			else if(Team == "yellow") this->team[3] = true;
 		}
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
@@ -366,9 +377,6 @@ class Element {
 		inline void push_function(auto function) {
 			this->frame_function_vector.push_back(function) ;
 		}
-		inline void remove_color(color_t color){
-			this->remove_colors.push_back(color);
-		}
 		inline bool ismousein() {
 			if(GetForegroundWindow() != getHWnd()) return false;
 			if(!this->is_show) return false;
@@ -388,11 +396,8 @@ class Element {
 //			if(EGEGET_A(getpixel(x,y,this->__visible_image)) == 255) cout<<"!= alpha"<<endl;
 //			else //getch();
 //			cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl;
-			color_t pixel = getpixel(x,y,this->__visible_image);
-			for(int i = 0;i < remove_colors.size();++ i){
-				if(pixel == remove_colors[i]) return false;
-			}
-			return ((EGEGET_A(pixel) != 0) || (pixel != 65796)); //EGERGBA(1,1,4,0) = 65796
+			int color = getpixel(x,y,this->__visible_image);
+			return ((color != 0) || (color != 65796)); //EGERGBA(1,1,4,0) = 65796
 //			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
 //			int d_height = getheight(this->image_vector[this->current_image]);
 //			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
@@ -406,12 +411,6 @@ class Element {
 		}
 		inline long long get_variable(unsigned int which) {
 			return this->private_variables[which];
-		}
-		inline void increase_variable(unsigned int which,long long value){
-			this->private_variables[which] += value;
-		}
-		inline void decrease_variable(unsigned int which,long long value){
-			this->private_variables[which] -= value;
 		}
 		inline void add_image(PIMAGE image) {
 			this->image_vector.push_back(image);
@@ -433,6 +432,28 @@ class Element {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
 					if(getpixel(x,y,this->__visible_image) == 65796) continue;
 					if(getpixel(x,y,that->__visible_image) == 65796) continue;
+					return true;
+				}
+			}
+		}
+		inline bool is_touched_Team(string Team) {
+			if(!this->is_show) return false;
+			this->draw_to_private_image();
+			
+			PIMAGE that;
+			if(Team == "red") that = redTeamImage;
+			else if(Team == "green") that = greenTeamImage;
+			else if(Team == "blue") that = blueTeamImage;
+			else if(Team == "yellow") that = yellowTeamImage;
+			
+			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
+				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
+					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
+					int thisp = getpixel(x,y,this->__visible_image);
+					int thatp = getpixel(x,y,that);
+					if(thisp == 65796 || thisp == 0) continue;
+					if(thatp == 65796 || thatp == 0) continue;
+					cout<<"ON ("<<x<<","<<y<<")"<<getpixel(x,y,this->__visible_image)<<' '<<getpixel(x,y,that)<<endl;
 					return true;
 				}
 			}
@@ -522,16 +543,7 @@ class Element {
 			this->alpha = alpha;
 		}
 		inline void decrease_alpha(unsigned char alpha) {
-			if(this->alpha - alpha < 0) this->alpha = 0;
-			else this->alpha -= alpha;
-		}
-		inline void increase_alpha(unsigned char alpha) {
-			if(this->alpha + alpha > 255) this->alpha = 255;
-			else this->alpha += alpha;;
-		}
-		inline void nextimage(){
-			this->current_image ++;
-			this->current_image %= this->image_vector.size();
+			this->alpha -= alpha;
 		}
 		~Element();
 };
@@ -542,14 +554,12 @@ vector<Element*>FreeList;
 
 namespace pen {
 	int order = 0;
-	int fontscale = 1;
 	void print(int x,int y,string str) {
 		if(pen_image == nullptr) return;
 		outtextxy(x,y,str.c_str(),pen_image);
 	}
 	void font(int scale,string fontname) {
 		if(pen_image == nullptr) return;
-		fontscale = scale;
 		setfont(scale,0,fontname.c_str(),pen_image);
 	}
 	void color(color_t color) {
@@ -559,14 +569,6 @@ namespace pen {
 	void clear(int x,int y,int ex,int ey) {
 		if(pen_image == nullptr) return;
 		bar(x,y,ex,ey,pen_image);
-	}
-	void clear_char(int x,int y){
-		if(pen_image == nullptr) return;
-		bar(x,y,x + fontscale,y + fontscale,pen_image);
-	}
-	void clear_chars(int x,int y,int charcount){
-		if(pen_image == nullptr) return;
-		bar(x,y,x + fontscale * charcount,y + fontscale,pen_image);
 	}
 	void clear_all() {
 		if(pen_image == nullptr) return;
@@ -597,11 +599,6 @@ bool cmp(Element* _A,Element* _B) {
 
 void reflush() {
 	++ frame;
-	vector<void(*)(void)>schedule_backup;
-	for(int i = 0;i < schedule.size();++ i) schedule_backup.push_back(schedule[i]);
-	schedule.clear();
-	for(int i = 0;i < schedule_backup.size();++ i) schedule_backup[i]();
-	schedule_backup.clear();
 	cleardevice();
 	if(needsort) {
 		sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
@@ -609,6 +606,12 @@ void reflush() {
 	}
 	__SIZE__ -= removesize;
 	removesize = 0;
+	
+	cleardevice(redTeamImage);
+	cleardevice(blueTeamImage);
+	cleardevice(greenTeamImage);
+	cleardevice(yellowTeamImage);
+	
 	bool pen_nprinted = true;
 	for(int i = 0; i < __SIZE__; ++ i) {
 		if(pen_nprinted && Element_queue[i]->getorder() >= pen::order) {
@@ -627,7 +630,7 @@ void reflush() {
 
 void start(int fps) {
 	randomize();
-	while(!closeGraph && is_run()) {
+	while(is_run()) {
 		reflush();
 	}
 }
@@ -652,30 +655,12 @@ Element* FeEGE::getElementByPtr(Element* ElementPtr) {
 Element ElementPool[MAXELEMENTCOUNT];
 bool ElementPoolUsed[MAXELEMENTCOUNT] = {0};
 
-Element* newElement(string id,string ImagePath,double x = 0,double y = 0) {
-	PIMAGE image = newimage();
-	getimage(image,ImagePath.c_str()); 
-	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
-		if(!ElementPoolUsed[i]) {
-			cout<<"分配"<<i<<endl;
-			ElementPoolUsed[i] = true;
-			Element* e = ElementPool[i].copy(id,image,i,x,y);
-			reg_Element(e);
-			return e;
-		}
-	}
-	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
-	return nullptr;
-}
-
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			cout<<"分配"<<i<<endl;
+//			cout<<"分配"<<i<<endl;
 			ElementPoolUsed[i] = true;
-			Element* e = ElementPool[i].copy(id,image,i,x,y);
-			reg_Element(e);
-			return e;
+			return ElementPool[i].copy(id,image,i,x,y);
 		}
 	}
 	MessageBox(getHWnd(),"分配Element失败(达到最大容量)","提示",MB_OK);
@@ -687,7 +672,7 @@ Element::~Element() {
 }
 
 inline Element* Element::deletethis() {
-//	cout<<"删除"<<endl; 
+//	cout<<"删除"<<this->PoolIndex<<endl; 
 //	cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 //			log("EMM");
@@ -698,7 +683,6 @@ inline Element* Element::deletethis() {
 			needsort = true;
 			this->deleted = true;
 			ElementPoolUsed[this->PoolIndex] = false;
-//			cout<<this->PoolIndex<<" : 1->0\n"; 
 			this->frame_function_vector.clear();
 			this->image_vector.clear();
 			this->clones.clear();

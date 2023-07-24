@@ -44,6 +44,11 @@ int removesize = 0;
 
 PIMAGE pen_image;
 
+PIMAGE redTeamImage;
+PIMAGE greenTeamImage;
+PIMAGE blueTeamImage;
+PIMAGE yellowTeamImage; 
+
 
 //Classes
 
@@ -55,15 +60,11 @@ PIMAGE pen_image;
 //	unsigned int type_uint;
 //};
 
-
-#include <iostream>
-#include<ctime>
-#include<cstdio>
-#include<time.h>
 using namespace std;
 
 namespace FeEGE {
 	short getkey(int VB) {
+		if(GetForegroundWindow() != getHWnd()) return false;
 		return GetAsyncKeyState(VB);
 	}
 	Element* getElementById(string);
@@ -83,7 +84,16 @@ namespace FeEGE {
 //		static Element* pen_element = newElement("$pen",pen_image,Width / 2,Height / 2);
 //		reg_Element(pen_element);
 	}
-
+	void initTeam(){
+		redTeamImage = newimage();
+		greenTeamImage = newimage();
+		yellowTeamImage = newimage();
+		blueTeamImage = newimage();
+		setbkcolor_f(EGERGBA(1,1,4,0),redTeamImage);
+		setbkcolor_f(EGERGBA(1,1,4,0),greenTeamImage);
+		setbkcolor_f(EGERGBA(1,1,4,0),yellowTeamImage);
+		setbkcolor_f(EGERGBA(1,1,4,0),blueTeamImage);
+	}
 }
 
 class Position {
@@ -133,6 +143,7 @@ class Element {
 		bool deleted = false;
 		Element** clonequeue = nullptr;
 		int PoolIndex;
+		bool team[4];
 
 		inline void reflush_mouse_statu() {
 			/*
@@ -251,9 +262,22 @@ class Element {
 //			PIMAGE alpha_image = newimage(getwidth(image),getheight(image));
 //			putimage_transparent(alpha_image,image,0,0,EGERGBA(11,))
 			putimage_rotatezoom(nullptr,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
-
+			if(this->team[0]) putimage_rotatezoom(redTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			else if(this->team[1]) putimage_rotatezoom(greenTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			else if(this->team[2]) putimage_rotatezoom(blueTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			else if(this->team[3]) putimage_rotatezoom(yellowTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
+			
+			
+			
 			this->draw_to_private_image();
 			this->reflush_mouse_statu();
+		}
+		inline void setTeam(string Team){
+			for(int i = 0;i < 4;++ i) this->team[i] = false;
+			if(Team == "red") this->team[0] = true;
+			else if(Team == "green") this->team[1] = true;
+			else if(Team == "blue") this->team[2] = true;
+			else if(Team == "yellow") this->team[3] = true;
 		}
 		inline void move_left(double pixels = 0) {
 			this->pos.x -= pixels;
@@ -372,7 +396,8 @@ class Element {
 //			if(EGEGET_A(getpixel(x,y,this->__visible_image)) == 255) cout<<"!= alpha"<<endl;
 //			else //getch();
 //			cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl;
-			return ((EGEGET_A(getpixel(x,y,this->__visible_image)) != 0) || (getpixel(x,y,this->__visible_image) != 65796)); //EGERGBA(1,1,4,0) = 65796
+			int color = getpixel(x,y,this->__visible_image);
+			return ((color != 0) || (color != 65796)); //EGERGBA(1,1,4,0) = 65796
 //			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
 //			int d_height = getheight(this->image_vector[this->current_image]);
 //			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
@@ -407,6 +432,28 @@ class Element {
 					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
 					if(getpixel(x,y,this->__visible_image) == 65796) continue;
 					if(getpixel(x,y,that->__visible_image) == 65796) continue;
+					return true;
+				}
+			}
+		}
+		inline bool is_touched_Team(string Team) {
+			if(!this->is_show) return false;
+			this->draw_to_private_image();
+			
+			PIMAGE that;
+			if(Team == "red") that = redTeamImage;
+			else if(Team == "green") that = greenTeamImage;
+			else if(Team == "blue") that = blueTeamImage;
+			else if(Team == "yellow") that = yellowTeamImage;
+			
+			for(int x = this->pos.x - getwidth(this->image_vector[this->current_image]); x <= this->pos.x + getwidth(this->image_vector[this->current_image]); ++ x) {
+				for(int y = this->pos.y - getheight(this->image_vector[this->current_image]); y <= this->pos.y + getheight(this->image_vector[this->current_image]); ++ y) {
+					if(x < 0 || y < 0 || x >= getwidth() || y >= getheight()) continue;
+					int thisp = getpixel(x,y,this->__visible_image);
+					int thatp = getpixel(x,y,that);
+					if(thisp == 65796 || thisp == 0) continue;
+					if(thatp == 65796 || thatp == 0) continue;
+					cout<<"ON ("<<x<<","<<y<<")"<<getpixel(x,y,this->__visible_image)<<' '<<getpixel(x,y,that)<<endl;
 					return true;
 				}
 			}
@@ -559,6 +606,12 @@ void reflush() {
 	}
 	__SIZE__ -= removesize;
 	removesize = 0;
+	
+	cleardevice(redTeamImage);
+	cleardevice(blueTeamImage);
+	cleardevice(greenTeamImage);
+	cleardevice(yellowTeamImage);
+	
 	bool pen_nprinted = true;
 	for(int i = 0; i < __SIZE__; ++ i) {
 		if(pen_nprinted && Element_queue[i]->getorder() >= pen::order) {
@@ -605,7 +658,7 @@ bool ElementPoolUsed[MAXELEMENTCOUNT] = {0};
 Element* newElement(string id,PIMAGE image,double x = 0,double y = 0) {
 	for(int i = 0; i < MAXELEMENTCOUNT; ++ i) {
 		if(!ElementPoolUsed[i]) {
-			cout<<"·ÖÅä"<<i<<endl;
+//			cout<<"·ÖÅä"<<i<<endl;
 			ElementPoolUsed[i] = true;
 			return ElementPool[i].copy(id,image,i,x,y);
 		}
@@ -619,7 +672,7 @@ Element::~Element() {
 }
 
 inline Element* Element::deletethis() {
-//	cout<<"É¾³ý"<<endl; 
+//	cout<<"É¾³ý"<<this->PoolIndex<<endl; 
 //	cout<<"p = "<<((Element*)this->get_variable(1))<<endl;
 	if(((Element*)this->get_variable(1)) != nullptr) ((Element*)this->get_variable(1))->removeList.push_back(this);
 //			log("EMM");
@@ -630,7 +683,6 @@ inline Element* Element::deletethis() {
 			needsort = true;
 			this->deleted = true;
 			ElementPoolUsed[this->PoolIndex] = false;
-			cout<<this->PoolIndex<<" : 1->0\n"; 
 			this->frame_function_vector.clear();
 			this->image_vector.clear();
 			this->clones.clear();
