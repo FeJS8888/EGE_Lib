@@ -1,4 +1,5 @@
 #define MAXCLONESCOUNT 10000
+#define MAXELEMENTCOUNT 500
 #include "FeEGELib.h"
 #include <iomanip>
 using namespace std;
