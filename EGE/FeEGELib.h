@@ -8,6 +8,7 @@
 #include<algorithm>
 #include<iostream>
 #include<fstream>
+#include<map>
 #include<queue>
 #include<stdlib.h>
 #include<malloc.h>
@@ -49,6 +50,8 @@ PIMAGE greenTeamImage;
 PIMAGE blueTeamImage;
 PIMAGE yellowTeamImage; 
 
+map<string,Element*>IdToElement;
+map<Element*,bool>ElementIsIn;
 
 //Classes
 
@@ -95,6 +98,19 @@ namespace FeEGE {
 		setbkcolor_f(EGERGBA(1,1,4,0),blueTeamImage);
 	}
 }
+
+union Any{
+	int INT32;
+	long long INT64;
+	double DOUBLE;
+	string STRING = "";
+	char CHAR;
+	void* POINTER;
+	
+	Any(){
+		
+	}
+};
 
 class Position {
 	public:
@@ -397,7 +413,7 @@ class Element {
 //			else //getch();
 //			cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl;
 			int color = getpixel(x,y,this->__visible_image);
-			return ((color != 0) || (color != 65796)); //EGERGBA(1,1,4,0) = 65796
+			return ((color != 0) && (color != 65796)); //EGERGBA(1,1,4,0) = 65796
 //			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
 //			int d_height = getheight(this->image_vector[this->current_image]);
 //			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
@@ -545,6 +561,7 @@ class Element {
 		inline void decrease_alpha(unsigned char alpha) {
 			this->alpha -= alpha;
 		}
+		map<string,Any*>variableMap;
 		~Element();
 };
 int current_reg_order = 0;
@@ -587,6 +604,8 @@ void reg_Element(Element* element) {
 	if(Element_queue.size() <= __SIZE__) Element_queue.push_back(element);
 	else Element_queue[__SIZE__] = element;
 	__SIZE__ ++;
+	ElementIsIn[element] = true;
+	IdToElement[element->getId()] = element;
 }
 
 bool cmp(Element* _A,Element* _B) {
@@ -635,21 +654,25 @@ void start(int fps) {
 	}
 }
 
+
+
 Element* FeEGE::getElementById(string ElementId) {
-	for(int i = 0; i < Element_queue.size(); ++ i) {
-		if(Element_queue[i] == nullptr) continue;
-		if(Element_queue[i]->getId().length() != ElementId.length()) continue;
-		if(Element_queue[i]->getId() == ElementId) return Element_queue[i];
-	}
-	return nullptr;
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		if(Element_queue[i] == nullptr) continue;
+//		if(Element_queue[i]->getId().length() != ElementId.length()) continue;
+//		if(Element_queue[i]->getId() == ElementId) return Element_queue[i];
+//	}
+	return IdToElement[ElementId]; 
 }
 
+
+
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
-	for(int i = 0; i < Element_queue.size(); ++ i) {
-		if(Element_queue[i] == nullptr) continue;
-		if(Element_queue[i] == ElementPtr) return Element_queue[i];
-	}
-	return nullptr;
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		if(Element_queue[i] == nullptr) continue;
+//		if(Element_queue[i] == ElementPtr) return Element_queue[i];
+//	}
+	return ElementIsIn[ElementPtr] ? ElementPtr : nullptr;
 }
 
 Element ElementPool[MAXELEMENTCOUNT];
@@ -696,6 +719,9 @@ inline Element* Element::deletethis() {
 			this->deleted = true;
 			delimage(this->__visible_image);
 //					cout<<"[Delete] "<<this->deleted<<endl;
+			ElementIsIn[this] = false;
+			IdToElement[this->id] = nullptr;
+			this->id.clear();
 			return this;
 		}
 	}

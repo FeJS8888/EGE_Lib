@@ -8,10 +8,12 @@
 #include<algorithm>
 #include<iostream>
 #include<fstream>
+#include<map>
 #include<queue>
 #include<stdlib.h>
 #include<malloc.h>
 #include<time.h>
+#include<thread>
 
 #ifndef MAXCLONESCOUNT
 #define MAXCLONESCOUNT 0
@@ -41,6 +43,8 @@ bool keystatus[360];
 vector<Element*>Element_queue;
 int __SIZE__ = 0;
 int removesize = 0;
+int joinElementCount = 0;
+int finishElementCount = 0;
 
 PIMAGE pen_image;
 
@@ -49,6 +53,8 @@ PIMAGE greenTeamImage;
 PIMAGE blueTeamImage;
 PIMAGE yellowTeamImage; 
 
+map<string,Element*>IdToElement;
+map<Element*,bool>ElementIsIn;
 
 //Classes
 
@@ -95,6 +101,19 @@ namespace FeEGE {
 		setbkcolor_f(EGERGBA(1,1,4,0),blueTeamImage);
 	}
 }
+
+union Any{
+	int INT32;
+	long long INT64;
+	double DOUBLE;
+	string STRING = "";
+	char CHAR;
+	void* POINTER;
+	
+	Any(){
+		
+	}
+};
 
 class Position {
 	public:
@@ -173,7 +192,8 @@ class Element {
 			}
 		};
 		inline void draw_to_private_image() {
-			delimage(this->__visible_image);
+			cout<<this->__visible_image<<endl;
+			if(this->__visible_image != nullptr) delimage(this->__visible_image);
 			this->__visible_image = newimage(getwidth(),getheight());
 			setbkcolor(EGERGBA(1,1,4,0),this->__visible_image);
 			putimage_rotatezoom(this->__visible_image,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1);
@@ -243,12 +263,14 @@ class Element {
 //			this->clonecount = 0;
 //		}
 		inline void call() {
+			cout<<this->id<<" join!"<<endl;
 			this->backup_pos = pos;
 			this->reflush_mouse_statu();
 			for(int i = 0; i < this->frame_function_vector.size(); ++ i) this->frame_function_vector[i](this);
 			if(this->deleted) return;
 			if(!this->is_show) return;
-
+			
+			joinElementCount ++;
 			//backup
 			if(this->is_cancel_x) {
 				this->is_cancel_x = false;
@@ -267,10 +289,11 @@ class Element {
 			else if(this->team[2]) putimage_rotatezoom(blueTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 			else if(this->team[3]) putimage_rotatezoom(yellowTeamImage,this->image_vector[this->current_image],this->pos.x,this->pos.y,0.5,0.5,this->angle / 180.00f * PIE,this->scale / 100.00f,1,this->alpha);
 			
-			
-			
 			this->draw_to_private_image();
 			this->reflush_mouse_statu();
+			
+			finishElementCount ++;
+			cout<<this->id<<" finish!"<<endl;
 		}
 		inline void setTeam(string Team){
 			for(int i = 0;i < 4;++ i) this->team[i] = false;
@@ -397,7 +420,7 @@ class Element {
 //			else //getch();
 //			cout<<"GETA"<<EGEGET_A(getpixel(x,y,this->__visible_image)<<endl;
 			int color = getpixel(x,y,this->__visible_image);
-			return ((color != 0) || (color != 65796)); //EGERGBA(1,1,4,0) = 65796
+			return ((color != 0) && (color != 65796)); //EGERGBA(1,1,4,0) = 65796
 //			int d_width = getwidth(this->image_vector[this->current_image]) / 2;
 //			int d_height = getheight(this->image_vector[this->current_image]);
 //			return (x >= this->pos.x - d_width && x <= this->pos.x + d_width && y >= this->pos.y - d_height && y <= this->pos.y + d_height);
@@ -545,6 +568,7 @@ class Element {
 		inline void decrease_alpha(unsigned char alpha) {
 			this->alpha -= alpha;
 		}
+		map<string,Any*>variableMap;
 		~Element();
 };
 int current_reg_order = 0;
@@ -587,6 +611,8 @@ void reg_Element(Element* element) {
 	if(Element_queue.size() <= __SIZE__) Element_queue.push_back(element);
 	else Element_queue[__SIZE__] = element;
 	__SIZE__ ++;
+	ElementIsIn[element] = true;
+	IdToElement[element->getId()] = element;
 }
 
 bool cmp(Element* _A,Element* _B) {
@@ -599,6 +625,10 @@ bool cmp(Element* _A,Element* _B) {
 
 void reflush() {
 	++ frame;
+	
+	joinElementCount = 0;
+	finishElementCount = 0;
+	
 	cleardevice();
 	if(needsort) {
 		sort(Element_queue.begin(),Element_queue.begin() + __SIZE__,cmp);
@@ -618,13 +648,20 @@ void reflush() {
 			pen_nprinted = false;
 			putimage_transparent(nullptr,pen_image,0,0,EGERGBA(1,1,4,0));
 		}
-		if(Element_queue[i] != nullptr) Element_queue[i]->call();
+		if(Element_queue[i] != nullptr) thread([i]{
+			Element_queue[i]->call();
+		}).detach();
 	}
 	flushmouse();
 	char fps[100];
 	sprintf(fps,"FPS : %0.2f",getfps());
 	setcaption(fps);
 	FreeList.clear();
+	while(finishElementCount != joinElementCount){
+		this_thread::sleep_for(chrono::milliseconds(1));
+		cout<<finishElementCount<<" "<<joinElementCount<<endl;
+	}
+	cout<<"OK"<<endl;
 	delay_ms(1);
 }
 
@@ -635,21 +672,25 @@ void start(int fps) {
 	}
 }
 
+
+
 Element* FeEGE::getElementById(string ElementId) {
-	for(int i = 0; i < Element_queue.size(); ++ i) {
-		if(Element_queue[i] == nullptr) continue;
-		if(Element_queue[i]->getId().length() != ElementId.length()) continue;
-		if(Element_queue[i]->getId() == ElementId) return Element_queue[i];
-	}
-	return nullptr;
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		if(Element_queue[i] == nullptr) continue;
+//		if(Element_queue[i]->getId().length() != ElementId.length()) continue;
+//		if(Element_queue[i]->getId() == ElementId) return Element_queue[i];
+//	}
+	return IdToElement[ElementId]; 
 }
 
+
+
 Element* FeEGE::getElementByPtr(Element* ElementPtr) {
-	for(int i = 0; i < Element_queue.size(); ++ i) {
-		if(Element_queue[i] == nullptr) continue;
-		if(Element_queue[i] == ElementPtr) return Element_queue[i];
-	}
-	return nullptr;
+//	for(int i = 0; i < Element_queue.size(); ++ i) {
+//		if(Element_queue[i] == nullptr) continue;
+//		if(Element_queue[i] == ElementPtr) return Element_queue[i];
+//	}
+	return ElementIsIn[ElementPtr] ? ElementPtr : nullptr;
 }
 
 Element ElementPool[MAXELEMENTCOUNT];
@@ -695,7 +736,11 @@ inline Element* Element::deletethis() {
 			this->on_clone_clones_function_vector.clear();
 			this->deleted = true;
 			delimage(this->__visible_image);
+			this->__visible_image = nullptr;
 //					cout<<"[Delete] "<<this->deleted<<endl;
+			ElementIsIn[this] = false;
+			IdToElement[this->id] = nullptr;
+			this->id.clear();
 			return this;
 		}
 	}

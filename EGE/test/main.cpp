@@ -36,17 +36,17 @@ void e0move(Element* e) {
 	if(getkey('s') || getkey('S')) if(e->getposition().y + getheight(e->get_image()) * e->getscale() / 100 / 2 <= getheight() - speed) e->move_down(speed);
 	if(getkey('w') || getkey('W')) if(e->getposition().y - getheight(e->get_image()) * e->getscale() / 100 / 2 >= speed) e->move_up(speed);
 	if(getkey(' ')) {
-		if(e->get_variable(1) + 1 < frame) {
+		if(e->get_variable(1) + 20 < frame) {
 			Element* clone = getElementById("2")->clone();
 			clone->listen("frame",clones_move);
 			e->set_variable(1,frame);
 		}
 	}
-	if(e->is_touched_by(getElementById("enemy"))){
-		e->cancel_move();
-	}
+//	if(e->is_touched_by(getElementById("enemy"))){
+//		e->cancel_move();
+//	}
 }
-
+//
 void enemy_frame(Element* e) {
 	if(e->get_image_order() == 1) {
 		int statu = e->get_variable(1);
@@ -84,7 +84,7 @@ int main() {
 	PIMAGE enemy_hurt = newimage();
 	PIMAGE e_2 = newimage();
 	getimage(e_0,".//resources//image//plane.png");
-	getimage(enemy,".//resources//image//0.png");
+	getimage(enemy,".//resources//image//enemy.png");
 	getimage(enemy_hurt,".//resources//image//enemy_hurt.png");
 	getimage(e_2,".//photo.png");
 	Element e0 = *(new Element("self",e_0,50,550));
@@ -108,9 +108,13 @@ int main() {
 	e1.show();
 	e0.listen("frame",e0move);
 	e0.listen("on_click",a);
-	e1.listen("frame",enemy_frame);
+//	e1.listen("frame",enemy_frame);
 	e2.listen("clones:on_clone",on_clone);
-
+	
+	Any *a;
+	a = new Any;
+	a->CHAR = 'a';
+	
 //	e0.deletethis();
 	start(60);
 }
